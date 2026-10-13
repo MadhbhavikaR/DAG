@@ -2,12 +2,12 @@
 package = false
 
 [project]
-name = "dag-linux-telegram-notifications"
+name = "notifier-service"
 version = "0.1.0"
-description = "Fail2ban action that sends ban and unban notifications to Telegram."
+description = "Extension-based framework for configuration-driven multi-channel notifications."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "GPL-3.0-or-later"
+license = "MIT"
 dependencies = [
     "requests>=2.32.0,<3.0.0",
 ]
