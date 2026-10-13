@@ -9,7 +9,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-or-later"
 dependencies = [
-    "fail2ban>=1.0.2",
     "requests>=2.32.0,<3.0.0",
 ]
 
