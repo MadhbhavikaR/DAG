@@ -1,6 +1,6 @@
 # Architecture
 
-Notifier-Service separates reusable notification infrastructure from optional integrations.
+Notifier-Service separates reusable notification infrastructure from optional integrations and uses DOX (`AGENTS.md` files) to document engineering boundaries without adding runtime dependencies.
 
 ## Core package: `notifier_service/`
 
@@ -13,6 +13,12 @@ Notifier-Service separates reusable notification infrastructure from optional in
 ## Extension package: `extensions/`
 
 Extensions contain platform-specific or application-specific behavior. An extension may implement `NotificationProvider` and pass it to `NotifierService(config, providers=[...])`. Alternatively, an extension can be an adapter consumed by another host application, as the Fail2ban action is.
+
+## DOX documentation boundary
+
+The root `AGENTS.md` owns repository-wide contracts and indexes scoped instruction files. Child `AGENTS.md` files define local ownership, behavior contracts, work guidance, verification, and child indexes. Before editing, follow the root-to-target chain. After meaningful changes, refresh the affected owner docs and indexes.
+
+DOX is deliberately documentation-only in this project: there is no imported DOX module, CLI, daemon, or dependency. It supports the development workflow rather than participating in notification delivery.
 
 ## Delivery behavior
 
