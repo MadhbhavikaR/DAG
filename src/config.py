@@ -6,12 +6,12 @@ from calibre_plugins.store_annas_archive.constants import (DEFAULT_MIRRORS, Sear
 try:
     from qt.core import (Qt, QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGroupBox, QScrollArea,
                          QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem, QPushButton,
-                         QAbstractItemView, QShortcut, QKeySequence)
+                         QAbstractItemView)
 except (ImportError, ModuleNotFoundError):
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import (QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGroupBox, QScrollArea,
                                  QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem, QPushButton,
-                                 QAbstractItemView, QShortcut)
+                                 QAbstractItemView)
 
 load_translations()
 
