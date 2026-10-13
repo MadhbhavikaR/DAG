@@ -64,7 +64,11 @@ def main() -> int:
         while True:
             temperature, speed, changed = controller.update()
             if changed:
-                LOGGER.info("Temperature %.1f °C; PWM target %d/255", temperature, speed)
+                LOGGER.info(
+                    "Temperature %.1f °C; PWM target %d/255",
+                    temperature,
+                    speed,
+                )
             time.sleep(config.update_interval)
     except KeyboardInterrupt:
         LOGGER.info("Stopping fan controller.")
