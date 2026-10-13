@@ -1,71 +1,89 @@
-# DAG Linux Telegram Notifications
+# Notifier-Service
 
-Send Telegram notifications when Fail2ban starts or stops, or when an IP address is banned or unbanned. This utility is designed to be installed as a Fail2ban action on a Linux host.
+Notifier-Service is a Python framework for sending application notifications to multiple messaging services and webhooks through a consistent API. The framework core owns notification models, configuration, formatting, and delivery orchestration. Platform- and domain-specific behavior lives in independent extensions under `extensions/`.
 
-## Features
+## Design
 
-- Sends start and stop notifications from Fail2ban.
-- Sends ban and unban notifications, independently configurable.
-- Adds a country name for an IP address when the IP lookup service is available.
-- Uses a configurable Telegram bot token and chat ID.
-- Isolated on its own DAG branch with dependency management through `uv`.
+```text
+application or extension
+          |
+          v
+   NotifierService
+          |
+          +---- NotificationProvider protocol
+          |
+          +---- WebhookProvider (built in)
+          |
+          +---- extensions/<extension-name>/
+```
+
+The core remains independent of particular notification services. Extensions may implement the provider protocol and register with `NotifierService`, or expose an external integration such as a Fail2ban action.
+
+## Included capabilities
+
+- **Generic webhook delivery:** configurable URL, headers, JSON payload templates, and multiple destinations.
+- **Message formatting:** plain text, HTML, Markdown, and simplified Markdown.
+- **Bounded retry handling:** finite HTTP timeouts, retry limits, and exponential backoff.
+- **Extension layout:** optional integrations live under `extensions/`.
+- **Fail2ban Telegram extension:** sends Fail2ban lifecycle and ban/unban notifications to Telegram.
 
 ## Requirements
 
-- Linux with Fail2ban installed.
 - Python 3.10 or newer.
-- A Telegram bot and the destination chat ID.
-- `uv` for development and dependency management.
+- [uv](https://docs.astral.sh/uv/) for development and dependency management.
+- Network access from the host to configured notification services.
 
-## Configure the Telegram bot
+## Getting started
 
-1. Create a bot in Telegram using [BotFather](https://telegram.me/botfather).
-2. Copy the bot API token.
-3. Start a conversation with the bot (or add it to the target group) and send a message so the bot can discover the chat.
-4. Copy `telegram_config.json.example` to `telegram_config.json` and set `telegram_api_token` and `telegram_chat_id`.
+Clone the repository and enter the project root:
 
-Keep bot tokens private. Do not commit your real `telegram_config.json` or expose the token in logs.
+```bash
+git clone https://github.com/MadhbhavikaR/DAG.git
+cd DAG
+git checkout Notifier-Service
+uv sync --all-groups
+```
 
-## Install as a Fail2ban action
+Create a configuration file such as `config.json` using this minimal webhook example:
 
-1. Copy `telegram.py` and your configured `telegram_config.json` to your Fail2ban action directory, usually `/etc/fail2ban/action.d/`.
-2. Install the Python dependency in an environment accessible to the Python interpreter used by Fail2ban:
+```json
+{
+  "STARTUP_MESSAGE": true,
+  "MIN_REPEAT": 1,
+  "EXAMPLE_WEBHOOK": {
+    "ENABLED": true,
+    "WEBHOOK_URL": ["https://example.invalid/notify"],
+    "HEADER": [{"Content-Type": "application/json"}],
+    "PAYLOAD": [{"message": "message"}],
+    "FORMAT_MESSAGE": ["text"]
+  }
+}
+```
 
-   ```bash
-   uv sync --no-dev
-   ```
+Replace the sample URL and payload with the receiving service's actual webhook endpoint and required payload schema. Do not store real credentials or private webhook URLs in version control.
 
-   Ensure the runtime interpreter can import `requests`. If your distribution runs Fail2ban with its system Python, install project dependencies into a compatible environment according to your distribution's packaging policy.
+A minimal application can load the configuration and send a notification:
 
-3. In your Fail2ban jail configuration (for example, `/etc/fail2ban/jail.local`), select the action:
+```python
+from notifier_service import NotifierService
+from notifier_service.config import load_config
 
-   ```ini
-   [sshd]
-   enabled = true
-   action = telegram
-   maxretry = 5
-   findtime = 10m
-   bantime = 1h
-   ```
+config = load_config("config.json")
+service = NotifierService(config)
+success = service.notify("Deployment completed", title="Deployment")
+if not success:
+    raise SystemExit("One or more notification providers failed")
+```
 
-   Action names depend on your Fail2ban package and local action setup. Check your distribution's naming rules and use the action name mapped to this module.
+This first cut exposes the reusable core API. The older scheduled DietPi update-check loop is intentionally not part of the framework core; it should be implemented as a separate extension if needed.
 
-4. Restart Fail2ban and inspect its service logs for configuration or delivery errors.
+## Fail2ban Telegram extension
 
-## Configuration
+The Fail2ban integration lives in `extensions/fail2ban-telegram/`. Read its [extension documentation](extensions/fail2ban-telegram/README.md) for installation and configuration. It preserves the Fail2ban action callbacks while improving network timeouts, error handling, and configuration persistence.
 
-| Key | Type | Description |
-| --- | --- | --- |
-| `telegram_api_token` | string | Telegram bot API token. Required. |
-| `telegram_chat_id` | string or number | Destination Telegram chat ID. Required for delivery. |
-| `receive_banned` | boolean | Send notifications for bans. Defaults to `true`. |
-| `receive_unbanned` | boolean | Send notifications for unbans. Defaults to `true`. |
+## Development and quality checks
 
-See `telegram_config.json.example` for a template. The action reads configuration from the same directory as `telegram.py` by default; edit `installpath` in the action if your installation uses a different directory.
-
-## Development
-
-Install [uv](https://docs.astral.sh/uv/) and run:
+Install the runtime and development dependency groups and run the quality checks:
 
 ```bash
 uv sync --all-groups
@@ -74,23 +92,27 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-Auto-fix lint and formatting issues with `uv run ruff check --fix .` and `uv run ruff format .`.
-
-## Releases
-
-Create a tag whose name is `<branch-name>_<semantic-version>`. For this branch, an example is:
-
-```bash
-git tag DAG-Linux-Telegram-Notifications_0.1.0
-git push origin DAG-Linux-Telegram-Notifications_0.1.0
-```
-
-The release workflow validates the tag format and creates a GitHub Release for the pushed tag. Release tags should point to the commit intended for release.
+The same checks run in GitHub Actions for Python 3.10, 3.11, and 3.12. Tests should mock network access and must not post to real messaging endpoints.
 
 ## Documentation
 
-Additional setup notes and operational guidance live in `docs/`.
+- [Architecture](docs/architecture.md)
+- [Webhook configuration](docs/config.md)
+- [Installation and operations](docs/installation.md)
+- [Development and release process](docs/development.md)
+- [Extension authoring](extensions/README.md)
 
-## License
+## Releases
 
-The migrated Fail2ban action is licensed under GPL-3.0-or-later; see [LICENSE-GPL-3.0](LICENSE-GPL-3.0) and [the license notice](docs/LICENSE-NOTICE.md). DAG's repository-level license remains in [LICENSE](LICENSE).
+Push a tag with the format `<branch-name>_<major>.<minor>.<patch>`. For this branch:
+
+```bash
+git tag Notifier-Service_0.1.0
+git push origin Notifier-Service_0.1.0
+```
+
+A GitHub Actions workflow validates the name and creates a GitHub Release with generated release notes.
+
+## Licensing
+
+The framework uses DAG's existing MIT license. The migrated Fail2ban Telegram extension retains its GPL-3.0-or-later licensing; see [LICENSE-GPL-3.0](LICENSE-GPL-3.0) and [the license notice](docs/LICENSE-NOTICE.md).
