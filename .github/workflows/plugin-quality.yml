@@ -1,0 +1,57 @@
+name: Plugin quality and build
+
+on:
+  push:
+    branches:
+      - Annas-Archieve-Callibre-Plugin
+  pull_request:
+    branches:
+      - Annas-Archieve-Callibre-Plugin
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Sync locked developer tools
+        run: uv sync --locked --dev
+      - name: Compile Python modules
+        run: uv run python -m py_compile src/__init__.py src/annas_archive.py src/config.py src/constants.py tools/build_plugin.py
+      - name: Run offline regression tests
+        run: uv run python -m unittest discover -s tests -v
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Mypy static analysis (advisory)
+        continue-on-error: true
+        run: uv run mypy src/annas_archive.py src/config.py src/constants.py
+      - name: Bandit security scan (advisory)
+        continue-on-error: true
+        run: uv run bandit -r src
+      - name: Build development plugin ZIP
+        id: build
+        run: |
+          set -euo pipefail
+          VERSION="$(uv run python tools/build_plugin.py --version-only)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          uv run python tools/build_plugin.py
+      - name: Upload plugin build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: annas-archieve-callibre-plugin-dev-${{ github.sha }}
+          path: dist/annas-archieve-callibre-plugin-v${{ steps.build.outputs.version }}.zip
+          if-no-files-found: error
+          retention-days: 30

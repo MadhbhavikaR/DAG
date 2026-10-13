@@ -1,0 +1,84 @@
+name: Publish Calibre plugin release
+
+on:
+  push:
+    tags:
+      - "annas-archieve-callibre-plugin_*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to build and publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Validate, package, and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if [[ ! "$TAG" =~ ^annas-archieve-callibre-plugin_[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release tag: $TAG"
+            exit 1
+          fi
+          VERSION="${TAG#annas-archieve-callibre-plugin_}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install locked development tools
+        run: uv sync --locked --dev
+      - name: Compile Python modules
+        run: uv run python -m py_compile src/__init__.py src/annas_archive.py src/config.py src/constants.py tools/build_plugin.py
+      - name: Run offline regression tests
+        run: uv run python -m unittest discover -s tests -v
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Build and validate release ZIP
+        id: build
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          uv run python tools/build_plugin.py --version "$VERSION"
+          ZIP="dist/annas-archieve-callibre-plugin-v${VERSION}.zip"
+          test -s "$ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub Release and upload ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          ZIP: ${{ steps.build.outputs.zip }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --verify-tag --title "$TAG" --generate-notes
+          fi

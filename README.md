@@ -1,17 +1,31 @@
-# DAG: Dynamically Generated Artifacts
+# Annas-Archieve-Callibre-Plugin
 
-Welcome to **DAG (Dynamically Generated Artifacts)**, is a modular, AI-powered toolkit designed to rapidly create, deploy, and maintain custom utility tools.
+Browse Anna's Archive through Calibre's **Get Books** interface with this store plugin.
 
-Instead of a monolithic toolkit, DAG uses a branch-based architecture where every every utility lives on its own dedicated branch—complete with its own source code, dependencies, environment configs, and GitHub Actions / CI/CD workflows. 
+## Install
 
-This isolation keeps tools lightweight, maintainable, and independently executable without polluting the main branch. AVoiding the exposure of the all the repositories to the AI.
+Download the plugin ZIP from the build workflow artifact or a release. In Calibre, open **Preferences → Plugins → Load plugin from file** and select the ZIP, then restart Calibre if prompted.
 
-## ✨ Key Features
-🤖 AI-Generated Codebase: Utilities are dynamically designed, generated, and updated using AI models tuned for specific tasks.
+## Development
 
-🌿 Branch-Isolated Architecture: Each utility exists on an isolated branch with zero shared dependency bloat.
+This is a Python project managed with [uv](https://docs.astral.sh/uv/). Install Git, Python 3.11 or later, and uv, then run:
 
-🔄 Custom Workflows per Utility: Every tool contains tailored automated pipelines (CI/CD, scheduling, testing, deployment) isolated to its branch context.
+```sh
+uv sync --locked --dev
+uv run python -m py_compile src/__init__.py src/annas_archive.py src/config.py src/constants.py
+uv run python -m unittest discover -s tests -v
+uv run ruff check .
+uv run python tools/build_plugin.py
+```
 
-🔌 Modular & Pluggable: Spin up a new branch for a new utility without risking breaking existing setups.
-*Here are a few options for your repository description, depending on where you plan to use it:
+The Calibre runtime code is under `src/`. The build script places the contents of `src/` at the root of the installable ZIP, which is the layout Calibre expects. Generated ZIPs are build artifacts and should not be committed.
+
+## Features
+
+- Search with sorting, language, file-type, content, access, and source filters.
+- Configure mirrors and fallback behavior.
+- Optionally filter download links by URL extension or HTTP Content-Type.
+
+Live-site behavior and mirror availability can change over time. Automated tests are offline; a successful test run does not guarantee current site compatibility.
+
+This plugin is derived from [ScottBot10/calibre_annas_archive](https://github.com/ScottBot10/calibre_annas_archive).
