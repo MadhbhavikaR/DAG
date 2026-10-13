@@ -40,3 +40,25 @@ def test_invalid_update_interval_is_rejected(tmp_path: Path) -> None:
     path.write_text('{"UPDATE_INTERVAL": 0}', encoding="utf-8")
     with pytest.raises(ValueError, match="UPDATE_INTERVAL"):
         FanConfig.from_file(path)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        '{"FAN_OFF_TEMP": "NaN"}',
+        '{"FAN_MAX_TEMP": "Infinity"}',
+        '{"UPDATE_INTERVAL": -Infinity}',
+    ],
+)
+def test_non_finite_values_are_rejected(tmp_path: Path, payload: str) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(payload, encoding="utf-8")
+    with pytest.raises(ValueError, match="finite"):
+        FanConfig.from_file(path)
+
+
+def test_string_max_perf_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text('{"MAX_PERF": "false"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="numeric"):
+        FanConfig.from_file(path)
