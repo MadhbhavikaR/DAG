@@ -1,39 +1,48 @@
-# Installation and configuration
+# Installation and operations
 
-## Telegram setup
+## Development install
 
-Create a Telegram bot with [BotFather](https://telegram.me/botfather), copy its API token, and send a message to the bot (or post in the group where it should notify). The bot must have permission to post to the destination chat.
+Install Python 3.10+ and [uv](https://docs.astral.sh/uv/), then from the repository root run:
 
-Copy `telegram_config.json.example` to `telegram_config.json` in the configured Fail2ban action directory. Fill in:
-
-- `telegram_api_token`: secret bot token; keep it out of version control.
-- `telegram_chat_id`: numeric chat ID or channel/group identifier. Leaving it blank asks the action to inspect bot updates and persist the first usable chat ID.
-- `receive_banned` and `receive_unbanned`: booleans that independently enable each event.
-
-## Fail2ban setup
-
-Copy `telegram.py` and the configured JSON file to the directory where Fail2ban loads action modules, commonly `/etc/fail2ban/action.d/`. By default, the script reads `/etc/fail2ban/action.d/telegram_config.json`; change `installpath` if needed.
-
-Install `requests` into the Python environment used by the Fail2ban service. For development, use `uv sync --all-groups`. For system services, follow the distribution's Python packaging policy rather than assuming an interactive shell's virtual environment is available to the service.
-
-Configure a jail in `jail.local`, for example:
-
-```ini
-[sshd]
-enabled = true
-action = telegram
-maxretry = 5
-findtime = 10m
-bantime = 1h
+```bash
+uv sync --all-groups
 ```
 
-Action names differ slightly between Fail2ban packaging/version conventions. Ensure your installation maps the `telegram` action name to this module.
+Use `uv run` for commands to ensure they use the managed environment.
 
-Restart Fail2ban, then review the service log to confirm that the action loaded and message delivery is successful.
+## Run the framework from Python
 
-## Operational notes
+Create a configuration file following [Webhook configuration](config.md), then:
 
-- Requests use a finite timeout; network failures are logged instead of recursively retrying forever.
-- IP country lookup is best-effort. A failure returns `Unknown` and does not block the notification.
-- Telegram chat discovery needs at least one recent update visible to the bot. Explicitly setting `telegram_chat_id` is the most reliable deployment method.
-- The action writes a discovered ID back into `telegram_config.json`; ensure the service has write permission if automatic discovery is enabled.
+```python
+from notifier_service import NotifierService
+from notifier_service.config import load_config
+
+service = NotifierService(load_config("config.json"))
+if not service.notify("Hello from Notifier-Service"):
+    raise SystemExit("At least one notification destination failed")
+```
+
+The current framework is a library-style core rather than a daemon with a built-in scheduling loop. A daemon, systemd service, or scheduled task can be added by an extension or application when needed.
+
+## Deploying as a Linux service
+
+Run the application through a dedicated virtual environment owned by the service account. Store configuration in a path readable only by that account. The example commands below are illustrative; change paths and user/group names to match your host.
+
+```bash
+sudo install -d -o notifier -g notifier /opt/notifier-service
+sudo install -d -o notifier -g notifier /etc/notifier-service
+```
+
+Prepare the project environment as the `notifier` service user and configure systemd's `WorkingDirectory`, `ExecStart`, and `EnvironmentFile` for your actual deployment. Do not copy systemd unit files containing example or machine-specific paths without review.
+
+## Fail2ban Telegram extension
+
+See [the extension README](../extensions/fail2ban-telegram/README.md). The extension is a Fail2ban action module and must be installed where the Fail2ban service's Python interpreter can import its dependencies. Verify local action naming rules for your distribution/version.
+
+## Troubleshooting
+
+- Inspect application or Fail2ban logs for configuration validation and provider failures.
+- Confirm URLs, credentials, headers, and payload schema for the receiving service.
+- Ensure outbound HTTPS traffic is allowed by local firewall policy.
+- The core retries network errors a bounded number of times; a successful HTTP response is considered delivered by the generic webhook provider.
