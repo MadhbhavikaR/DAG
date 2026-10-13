@@ -1,4 +1,4 @@
-"""JSON configuration loading."""
+"""JSON configuration loading and validation."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from notifier_service.models import NotifierConfig, WebhookConfig
+
+_RESERVED_KEYS = {"STARTUP_MESSAGE", "MIN_REPEAT", "DEFAULT_DOT_STYLE"}
 
 
 def _as_list(value: Any) -> list[Any]:
@@ -26,20 +28,26 @@ def load_config(path: str | Path) -> NotifierConfig:
     if not isinstance(data, dict):
         raise ValueError("Notifier configuration must be a JSON object")
 
-    reserved_keys = {"STARTUP_MESSAGE", "MIN_REPEAT", "DEFAULT_DOT_STYLE"}
     destinations: list[WebhookConfig] = []
-
     for name, destination in data.items():
-        if name in reserved_keys:
+        if name in _RESERVED_KEYS:
             continue
         if not isinstance(destination, dict):
             raise ValueError(f"Destination {name!r} must be a JSON object")
 
         enabled = bool(destination.get("ENABLED", False))
-        urls = _as_list(destination.get("WEBHOOK_URL", []))
-        headers = _as_list(destination.get("HEADER", []))
-        payloads = _as_list(destination.get("PAYLOAD", []))
-        formats = _as_list(destination.get("FORMAT_MESSAGE", ["text"]))
+        raw_urls = destination.get("WEBHOOK_URL")
+        if raw_urls is None:
+            if enabled:
+                raise ValueError(f"Enabled destination {name!r} requires WEBHOOK_URL")
+            continue
+
+        urls = _as_list(raw_urls)
+        headers = _as_list(destination.get("HEADER", [{} for _ in urls]))
+        payloads = _as_list(
+            destination.get("PAYLOAD", [{"message": "message"} for _ in urls])
+        )
+        formats = _as_list(destination.get("FORMAT_MESSAGE", ["text"] * len(urls)))
 
         if not (len(urls) == len(headers) == len(payloads) == len(formats)):
             raise ValueError(
@@ -65,8 +73,13 @@ def load_config(path: str | Path) -> NotifierConfig:
                 )
             )
 
+    try:
+        repeat_minutes = max(int(data.get("MIN_REPEAT", 1)), 1)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("MIN_REPEAT must be an integer") from exc
+
     return NotifierConfig(
         startup_message=bool(data.get("STARTUP_MESSAGE", True)),
-        minimum_repeat_minutes=max(int(data.get("MIN_REPEAT", 1)), 1),
+        minimum_repeat_minutes=repeat_minutes,
         webhooks=tuple(destinations),
     )
