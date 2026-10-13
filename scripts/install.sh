@@ -20,7 +20,9 @@ cp -R "$PROJECT_DIR/src" "$INSTALL_DIR/"
 cp "$PROJECT_DIR/pyproject.toml" "$INSTALL_DIR/"
 cp "$PROJECT_DIR/README.md" "$INSTALL_DIR/"
 install -m 0644 "$PROJECT_DIR/LICENSE" "$INSTALL_DIR/LICENSE"
-install -m 0644 "$PROJECT_DIR/config/config.json" "$CONFIG_DIR/config.json"
+if [[ ! -e "$CONFIG_DIR/config.json" ]]; then
+  install -m 0644 "$PROJECT_DIR/config/config.json" "$CONFIG_DIR/config.json"
+fi
 install -m 0644 "$PROJECT_DIR/systemd/jetson-fan-control.service" "$SERVICE_FILE"
 
 cd "$INSTALL_DIR"
