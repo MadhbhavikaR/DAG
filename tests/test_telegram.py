@@ -1,7 +1,6 @@
 import importlib.util
 import json
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import Mock
 
 import requests
@@ -13,7 +12,7 @@ telegram = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(telegram)
 
 
-def build_action(tmp_path: Path, monkeypatch) -> telegram.TelegramAction:
+def build_action(tmp_path: Path) -> telegram.TelegramAction:
     config_path = tmp_path / "telegram_config.json"
     config_path.write_text(
         json.dumps(
@@ -52,8 +51,8 @@ def test_load_config_rejects_invalid_json(tmp_path: Path) -> None:
         raise AssertionError("Invalid JSON should be rejected")
 
 
-def test_send_message_uses_timeout_and_returns_true(tmp_path, monkeypatch) -> None:
-    action = build_action(tmp_path, monkeypatch)
+def test_send_message_uses_timeout(monkeypatch, tmp_path: Path) -> None:
+    action = build_action(tmp_path)
     response = Mock()
     response.json.return_value = {"ok": True}
     monkeypatch.setattr(telegram.requests, "post", Mock(return_value=response))
@@ -66,8 +65,8 @@ def test_send_message_uses_timeout_and_returns_true(tmp_path, monkeypatch) -> No
     )
 
 
-def test_send_message_returns_false_on_request_error(tmp_path, monkeypatch) -> None:
-    action = build_action(tmp_path, monkeypatch)
+def test_send_message_returns_false_on_request_error(monkeypatch, tmp_path: Path) -> None:
+    action = build_action(tmp_path)
     monkeypatch.setattr(
         telegram.requests,
         "post",
@@ -87,8 +86,8 @@ def test_country_lookup_returns_unknown_on_error(monkeypatch) -> None:
     assert telegram.TelegramAction.get_location("192.0.2.1") == "Unknown"
 
 
-def test_get_chat_id_persists_json_object(tmp_path, monkeypatch) -> None:
-    action = build_action(tmp_path, monkeypatch)
+def test_get_chat_id_persists_json_object(monkeypatch, tmp_path: Path) -> None:
+    action = build_action(tmp_path)
     action.chat_id = None
     action.config["telegram_chat_id"] = ""
     response = Mock()
@@ -104,8 +103,8 @@ def test_get_chat_id_persists_json_object(tmp_path, monkeypatch) -> None:
     assert isinstance(saved, dict)
 
 
-def test_ban_respects_receive_banned_flag(tmp_path, monkeypatch) -> None:
-    action = build_action(tmp_path, monkeypatch)
+def test_ban_respects_receive_banned_flag(tmp_path: Path) -> None:
+    action = build_action(tmp_path)
     action.config["receive_banned"] = False
     action.get_location = Mock(return_value="Exampleland")
     action.send_message = Mock()
@@ -116,8 +115,8 @@ def test_ban_respects_receive_banned_flag(tmp_path, monkeypatch) -> None:
     action.send_message.assert_not_called()
 
 
-def test_unban_sends_notification_when_enabled(tmp_path, monkeypatch) -> None:
-    action = build_action(tmp_path, monkeypatch)
+def test_unban_sends_notification_when_enabled(tmp_path: Path) -> None:
+    action = build_action(tmp_path)
     action.get_location = Mock(return_value="Exampleland")
     action.send_message = Mock()
 
