@@ -9,6 +9,7 @@ venv/
 .env
 .env.*
 !.env.example
+config.json
 telegram_config.json
 
 # Build artifacts
