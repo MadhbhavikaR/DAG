@@ -26,6 +26,7 @@ The core remains independent of particular notification services. Extensions may
 - **Bounded retry handling:** finite HTTP timeouts, retry limits, and exponential backoff.
 - **Extension layout:** optional integrations live under `extensions/`.
 - **Fail2ban Telegram extension:** sends Fail2ban lifecycle and ban/unban notifications to Telegram.
+- **DOX project guidance:** scoped `AGENTS.md` files define engineering contracts and keep project context discoverable for AI coding agents. DOX adds no runtime dependency.
 
 ## Requirements
 
@@ -81,6 +82,12 @@ The framework currently provides the reusable notification API, configuration lo
 
 The Fail2ban integration lives in `extensions/fail2ban-telegram/`. Read its [extension documentation](extensions/fail2ban-telegram/README.md) for installation and configuration. It preserves Fail2ban action callbacks while improving network timeouts, error handling, and configuration persistence.
 
+## DOX guidance
+
+This repository adopts [agent0ai/dox](https://github.com/agent0ai/dox), a lightweight `AGENTS.md` documentation convention. It is not a Python library or service dependency.
+
+Start with [root AGENTS.md](AGENTS.md), then read the closest scoped contract before changing files: [core guidance](notifier_service/AGENTS.md), [extension guidance](extensions/AGENTS.md), [Fail2ban extension guidance](extensions/fail2ban-telegram/AGENTS.md), [documentation guidance](docs/AGENTS.md), and [automation guidance](.github/AGENTS.md). After a meaningful change, update the nearest owning guide and any affected indexes.
+
 ## Development and quality checks
 
 Install the runtime and development dependency groups and run the quality checks:
@@ -102,6 +109,7 @@ The same checks run in GitHub Actions for Python 3.10, 3.11, and 3.12. Tests sho
 - [Development and release process](docs/development.md)
 - [Extension authoring](docs/extension-authoring.md)
 - [Extensions overview](extensions/README.md)
+- [DOX project instructions](AGENTS.md)
 
 ## Releases
 
