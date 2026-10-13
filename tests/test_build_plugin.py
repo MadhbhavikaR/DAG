@@ -23,12 +23,12 @@ class BuildPluginTests(unittest.TestCase):
         build_plugin.SRC = self.root / "src"
         build_plugin.SRC.mkdir()
         (self.root / "src" / "__init__.py").write_text(
-            "class AnnasArchiveStore:\\n    version = (1, 2, 3)\\n",
+            "class AnnasArchiveStore:\n    version = (1, 2, 3)\n",
             encoding="utf-8",
         )
         for name in build_plugin.REQUIRED_FILES:
             if name != "__init__.py":
-                (self.root / "src" / name).write_text(f"fixture for {name}\\n", encoding="utf-8")
+                (self.root / "src" / name).write_text(f"fixture for {name}\n", encoding="utf-8")
 
     def tearDown(self):
         build_plugin.ROOT = self.original_root
@@ -40,7 +40,7 @@ class BuildPluginTests(unittest.TestCase):
 
     def test_rejects_invalid_plugin_metadata_version(self):
         (self.root / "src" / "__init__.py").write_text(
-            'class AnnasArchiveStore:\\n    version = "9.9.9"\\n',
+            'class AnnasArchiveStore:\n    version = "9.9.9"\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "three-part integer tuple"):
