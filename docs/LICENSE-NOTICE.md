@@ -1,5 +1,5 @@
 # License notice
 
-The Fail2ban Telegram action migrated in this branch derives from code distributed under the GNU General Public License, version 3. The project metadata therefore declares GPL-3.0-or-later, and this utility must be distributed in accordance with the applicable license terms.
+The Fail2ban Telegram action migrated in this branch derives from code distributed under the GNU General Public License, version 3. Project metadata declares this utility as GPL-3.0-or-later.
 
-The complete license text is available from the Free Software Foundation at https://www.gnu.org/licenses/gpl-3.0.txt. The source project supplied the license as `LICENSE.md`; this branch consolidates project licensing at the repository root.
+See [LICENSE-GPL-3.0](../LICENSE-GPL-3.0) for the complete GPL license text. DAG's pre-existing repository-level MIT license remains in [LICENSE](../LICENSE); the migrated utility retains its own GPL license notice.
