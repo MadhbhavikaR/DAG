@@ -1,0 +1,31 @@
+name: Quality
+
+on:
+  push:
+    branches: ["DAG-Jetson-Nano-4GB-Fan_Control"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Install project and development tools
+        run: uv sync --dev
+      - name: Run tests
+        run: uv run pytest
+      - name: Lint
+        run: uv run ruff check .
+      - name: Check formatting
+        run: uv run ruff format --check .
