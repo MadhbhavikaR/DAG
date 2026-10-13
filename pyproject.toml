@@ -1,5 +1,5 @@
 [project]
-name = "annas-archieve-callibre-plugin"
+name = "annas-archieve-calibre-plugin"
 version = "0.1.0"
 description = "Anna's Archive store plugin for Calibre"
 readme = "README.md"

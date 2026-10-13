@@ -12,7 +12,7 @@ from zipfile import BadZipFile, ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
-PROJECT = "annas-archieve-callibre-plugin"
+PROJECT = "annas-archieve-calibre-plugin"
 REQUIRED_FILES = (
     "__init__.py",
     "annas_archive.py",

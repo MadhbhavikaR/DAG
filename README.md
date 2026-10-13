@@ -1,4 +1,4 @@
-# Annas-Archieve-Callibre-Plugin
+# Annas-Archieve-Calibre-Plugin
 
 Browse Anna's Archive through Calibre's **Get Books** interface with this store plugin.
 

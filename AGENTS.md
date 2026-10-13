@@ -1,6 +1,6 @@
 # Project contract
 
-This branch contains Annas-Archieve-Callibre-Plugin, a Calibre Store plugin maintained as a branch-isolated utility within DAG.
+This branch contains Annas-Archieve-Calibre-Plugin, a Calibre Store plugin maintained as a branch-isolated utility within DAG.
 
 - Runtime plugin files are under `src/`; installable ZIPs must contain the contents of `src/` at their root.
 - Use `uv` for dependency and tooling management; keep `uv.lock` synchronized with `pyproject.toml`.

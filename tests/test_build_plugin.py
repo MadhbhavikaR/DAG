@@ -49,7 +49,7 @@ class BuildPluginTests(unittest.TestCase):
     def test_archive_name_contains_project_and_version(self):
         self.assertEqual(
             build_plugin.archive_path("1.2.3"),
-            self.root / "dist" / "annas-archieve-callibre-plugin-v1.2.3.zip",
+            self.root / "dist" / "annas-archieve-calibre-plugin-v1.2.3.zip",
         )
 
     def test_build_writes_exact_required_files_at_archive_root(self):

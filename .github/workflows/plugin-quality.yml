@@ -3,10 +3,10 @@ name: Plugin quality and build
 on:
   push:
     branches:
-      - Annas-Archieve-Callibre-Plugin
+      - Annas-Archieve-Calibre-Plugin
   pull_request:
     branches:
-      - Annas-Archieve-Callibre-Plugin
+      - Annas-Archieve-Calibre-Plugin
   workflow_dispatch:
 
 permissions:
@@ -53,7 +53,7 @@ jobs:
       - name: Upload plugin build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: annas-archieve-callibre-plugin-dev-${{ github.sha }}
-          path: dist/annas-archieve-callibre-plugin-v${{ steps.build.outputs.version }}.zip
+          name: annas-archieve-calibre-plugin-dev-${{ github.sha }}
+          path: dist/annas-archieve-calibre-plugin-v${{ steps.build.outputs.version }}.zip
           if-no-files-found: error
           retention-days: 30
