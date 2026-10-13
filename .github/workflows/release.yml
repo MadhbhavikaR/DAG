@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ ! "$TAG_NAME" =~ ^([A-Za-z0-9][A-Za-z0-9._-]*)_([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "Tag must be <branch-name>_<semantic-version>, for example DAG-Linux-Telegram-Notifications_0.1.0" >&2
+            echo "Tag must be <branch-name>_<semantic-version>, e.g. Notifier-Service_0.1.0" >&2
             exit 1
           fi
           echo "branch_name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
