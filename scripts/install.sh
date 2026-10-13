@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 if [[ "${EUID}" -ne 0 ]]; then
-  exec sudo "$0" "$@"
+  exec sudo bash "$0" "$@"
 fi
 
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
