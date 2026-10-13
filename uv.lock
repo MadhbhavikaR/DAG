@@ -1,0 +1,17 @@
+version = 1
+requires-python = ">=3.10"
+
+[[package]]
+name = "dag-linux-telegram-notifications"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "fail2ban" },
+    { name = "requests" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
