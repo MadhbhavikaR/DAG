@@ -13,7 +13,7 @@ KindleFetch is a menu-driven shell utility for jailbroken Kindle devices. It hel
 
 ## Requirements
 
-- A jailbroken Kindle with KUAL available.
+- A jailbroken Kindle with KUAL or KPM available.
 - [kterm](https://github.com/bfabiszewski/kterm/releases), installed under the Kindle's `extensions` directory.
 - Network access from the Kindle.
 - KOReader is optional; use it if you want an additional reader for supported formats.
