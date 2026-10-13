@@ -33,13 +33,13 @@ class WebhookProvider:
     def _make_payload(
         template: dict[str, Any], notification: Notification, formatted: str
     ) -> tuple[dict[str, Any] | None, bytes | None]:
+        raw_body = "data" in template
         payload = dict(template)
-        raw_body = "data" in payload
         for key, value in tuple(payload.items()):
             if key in {"text", "content", "message", "body", "formatted_body", "data"}:
                 payload[key] = formatted
             elif key == "title":
-                payload[key] = notification.title or formatted.splitlines()[0]
+                payload[key] = notification.title or (formatted.splitlines()[0] if formatted else "")
             elif key == "extras" and isinstance(value, dict):
                 extras = dict(value)
                 extras["message"] = formatted
