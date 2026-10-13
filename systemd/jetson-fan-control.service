@@ -1,0 +1,16 @@
+[Unit]
+Description=Jetson Nano PWM fan control
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 5
+ExecStart=/opt/jetson-fan-control/.venv/bin/jetson-fan-control --config /etc/jetson-fan-control/config.json
+ExecStopPost=/bin/sh -c '/bin/echo 0 > /sys/devices/pwm-fan/target_pwm'
+User=root
+StandardOutput=journal
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
