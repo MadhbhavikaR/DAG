@@ -34,7 +34,7 @@ sudo install -d -o notifier -g notifier /opt/notifier-service
 sudo install -d -o notifier -g notifier /etc/notifier-service
 ```
 
-Prepare the project environment as the `notifier` service user and configure systemd's `WorkingDirectory`, `ExecStart`, and `EnvironmentFile` for your actual deployment. Do not copy systemd unit files containing example or machine-specific paths without review.
+Prepare the project environment as the `notifier` service user and configure systemd's `WorkingDirectory`, `ExecStart`, and `EnvironmentFile` for your actual deployment. Do not copy service unit files containing example or machine-specific paths without review.
 
 ## Fail2ban Telegram extension
 
