@@ -218,3 +218,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# KindleFetch runtime state and release package
+.DS_Store
+books/
+kindlefetch_config
+kindlefetch/bin/kindlefetch_config
+kindlefetch/bin/zlib_cookies.txt
+kindlefetch/bin/.version
+kindlefetch.zip
