@@ -5,12 +5,12 @@ from calibre_plugins.store_annas_archive.constants import (DEFAULT_MIRRORS, Sear
 
 try:
     from qt.core import (Qt, QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGroupBox, QScrollArea,
-                         QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem,
+                         QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem, QPushButton,
                          QAbstractItemView, QShortcut, QKeySequence)
 except (ImportError, ModuleNotFoundError):
     from PyQt5.QtCore import Qt
     from PyQt5.QtWidgets import (QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGroupBox, QScrollArea,
-                                 QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem,
+                                 QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem, QPushButton,
                                  QAbstractItemView, QShortcut)
     from PyQt5.QtGui import QKeySequence
 
@@ -18,51 +18,45 @@ load_translations()
 
 
 class MirrorsList(QListWidget):
-    def __init__(self, parent=...):
+    """Editable list of mirrors managed with explicit add, edit, and delete actions."""
+
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
 
-        self._check_last_changed = False
-        self.itemChanged.connect(self.add_mirror)
-
-        self.delete_pressed = QShortcut(QKeySequence(Qt.Key.Key_Delete), self)
-        self.delete_pressed.activated.connect(self.delete_item)
-
-    def delete_item(self):
-        if self.currentRow() != self.count() - 1:
-            self.takeItem(self.currentRow())
-
     def load_mirrors(self, mirrors):
-        self._check_last_changed = False
+        self.clear()
         for mirror in mirrors:
-            item = QListWidgetItem(mirror, self)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
-        self._add_last_list_item()
-        self._check_last_changed = True
+            self._append_item(str(mirror))
 
-    def _add_last_list_item(self):
-        item = QListWidgetItem('', self)
-        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsEnabled)
+    def _append_item(self, value=''):
+        item = QListWidgetItem(value, self)
+        item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled)
+        return item
 
-    def dropEvent(self, event):
-        y = event.pos().y()
-        if (self.count() < 5 and y <= (self.count() * 16) - 10) or (self.count() >= 5 and y <= 70):
-            return super().dropEvent(event)
+    def add_mirror(self):
+        item = self._append_item()
+        self.setCurrentItem(item)
+        self.editItem(item)
 
-    def add_mirror(self, item):
-        if self._check_last_changed and self.count() == self.indexFromItem(item).row() + 1:
-            if item.text():
-                self._check_last_changed = False
-                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsDragEnabled)
-                self._add_last_list_item()
-                self._check_last_changed = True
+    def edit_mirror(self):
+        item = self.currentItem()
+        if item is not None:
+            self.editItem(item)
+
+    def delete_mirror(self):
+        row = self.currentRow()
+        if row >= 0:
+            self.takeItem(row)
 
     def get_mirrors(self) -> list:
-        return [
-            item for i in range(self.count())
-            if (item := str(self.item(i).text()))
-        ]
+        mirrors = []
+        for i in range(self.count()):
+            mirror = str(self.item(i).text()).strip().rstrip('/')
+            if mirror and mirror not in mirrors:
+                mirrors.append(mirror)
+        return mirrors
 
 
 class ConfigWidget(QWidget):
@@ -119,6 +113,17 @@ class ConfigWidget(QWidget):
         layout.setContentsMargins(1, 1, 1, 1)
         self.mirrors = MirrorsList(mirrors)
         layout.addWidget(self.mirrors)
+        mirror_buttons = QHBoxLayout()
+        add_mirror = QPushButton(_('Add'), mirrors)
+        add_mirror.clicked.connect(self.mirrors.add_mirror)
+        edit_mirror = QPushButton(_('Edit'), mirrors)
+        edit_mirror.clicked.connect(self.mirrors.edit_mirror)
+        delete_mirror = QPushButton(_('Delete'), mirrors)
+        delete_mirror.clicked.connect(self.mirrors.delete_mirror)
+        mirror_buttons.addWidget(add_mirror)
+        mirror_buttons.addWidget(edit_mirror)
+        mirror_buttons.addWidget(delete_mirror)
+        layout.addLayout(mirror_buttons)
         horizontal_layout.addWidget(mirrors)
 
         main_layout.addLayout(horizontal_layout)
@@ -167,7 +172,12 @@ class ConfigWidget(QWidget):
         config = self.store.config
 
         self.open_external.setChecked(config.get('open_external', False))
-        self.mirrors.load_mirrors(config.get('mirrors', DEFAULT_MIRRORS))
+        configured_mirrors = config.get('mirrors')
+        # Migrate the previous built-in mirror set, preserving custom user lists.
+        old_defaults = ['https://annas-archive.org', 'https://annas-archive.li', 'https://annas-archive.se']
+        if configured_mirrors is None or configured_mirrors == old_defaults:
+            configured_mirrors = DEFAULT_MIRRORS
+        self.mirrors.load_mirrors(configured_mirrors)
 
         search_opts = config.get('search', {})
         for configuration in self.search_options.values():

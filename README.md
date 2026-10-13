@@ -23,7 +23,7 @@ The Calibre runtime code is under `src/`. The build script places the contents o
 ## Features
 
 - Search with sorting, language, file-type, content, access, and source filters.
-- Configure mirrors and fallback behavior.
+- Add, edit, delete, and reorder mirrors; the default mirror is `https://annas-archive.gd`.
 - Optionally filter download links by URL extension or HTTP Content-Type.
 
 Live-site behavior and mirror availability can change over time. Automated tests are offline; a successful test run does not guarantee current site compatibility.
