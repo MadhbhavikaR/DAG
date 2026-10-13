@@ -10,6 +10,7 @@ This utility is maintained as an isolated tool branch in DAG.
 - Optional `jetson_clocks` invocation at startup.
 - systemd integration for automatic startup and restart-on-failure.
 - A `uv`-managed Python project with tests, Ruff linting/formatting, and CI.
+- Automatic GitHub Releases from semantic-version tags.
 
 ## Hardware and platform
 This project targets a Jetson Nano 4 GB with a compatible 5 V PWM fan. It expects the following Linux interfaces, which must be verified on the target device:
@@ -56,6 +57,7 @@ Speed is interpolated linearly between the temperature thresholds and clamped to
 - [Installation and systemd setup](docs/installation.md)
 - [Configuration reference](docs/configuration.md)
 - [Development and quality checks](docs/development.md)
+- [Release tagging and versioning](docs/releases.md)
 - [Troubleshooting](docs/troubleshooting.md)
 
 ## Development
