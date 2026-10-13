@@ -12,7 +12,6 @@ except (ImportError, ModuleNotFoundError):
     from PyQt5.QtWidgets import (QWidget, QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGroupBox, QScrollArea,
                                  QAbstractScrollArea, QComboBox, QCheckBox, QSizePolicy, QListWidget, QListWidgetItem, QPushButton,
                                  QAbstractItemView, QShortcut)
-    from PyQt5.QtGui import QKeySequence
 
 load_translations()
 
