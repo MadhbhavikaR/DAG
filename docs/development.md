@@ -1,5 +1,11 @@
 # Development
 
+## Read the DOX chain first
+
+This repository uses the [DOX](https://github.com/agent0ai/dox) `AGENTS.md` convention. Before editing, read [root AGENTS.md](../AGENTS.md), identify the files you will touch, then read the nearest `AGENTS.md` files along each path. After meaningful changes, update the owning instructions and every affected parent index.
+
+DOX is Markdown guidance only; it does not require a runtime dependency or installation step.
+
 ## Environment
 
 Install Python 3.10+ and [uv](https://docs.astral.sh/uv/). Then run:
@@ -29,12 +35,14 @@ Tests must mock network access. Never send tests to real Telegram accounts or pr
 
 ## Adding an extension
 
-1. Create `extensions/<extension-name>/`.
-2. Keep extension implementation, example configuration, tests, and extension README together.
-3. For a provider extension, implement `NotificationProvider.send(notification) -> bool`.
-4. Inject provider instances into `NotifierService(config, providers=[...])`.
-5. Keep platform-specific configuration and dependencies isolated from the core wherever possible.
-6. Add tests for success, failed requests, timeout handling, and malformed configuration.
+1. Read the root, extension, and nearest integration `AGENTS.md` documents.
+2. Create `extensions/<extension-name>/`.
+3. Keep extension implementation, example configuration, tests, and extension README together.
+4. For a provider extension, implement `NotificationProvider.send(notification) -> bool`.
+5. Inject provider instances into `NotifierService(config, providers=[...])`.
+6. Keep platform-specific configuration and dependencies isolated from the core wherever possible.
+7. Add tests for success, failed requests, timeout handling, and malformed configuration.
+8. Update the extension DOX index and root index.
 
 ## Branch and release conventions
 
