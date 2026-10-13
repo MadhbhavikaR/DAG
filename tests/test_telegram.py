@@ -5,9 +5,7 @@ from unittest.mock import Mock
 
 import requests
 
-MODULE_PATH = (
-    Path(__file__).parents[1] / "extensions" / "fail2ban-telegram" / "telegram.py"
-)
+MODULE_PATH = Path(__file__).parents[1] / "extensions" / "fail2ban-telegram" / "telegram.py"
 SPEC = importlib.util.spec_from_file_location("fail2ban_telegram_extension", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 telegram = importlib.util.module_from_spec(SPEC)
