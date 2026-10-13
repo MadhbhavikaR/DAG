@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from notifier_service.models import Notification, NotifierConfig
 from notifier_service.providers import NotificationProvider, WebhookProvider
 
+LOGGER = logging.getLogger(__name__)
+
 
 class NotifierService:
-    """Framework core dispatching notifications to providers and extensions."""
+    """Framework core dispatching notifications to registered providers."""
 
     def __init__(
         self,
@@ -30,8 +33,15 @@ class NotifierService:
     ) -> bool:
         """Send a message through all providers and return aggregate success."""
         notification = Notification(message=message, title=title, metadata=metadata or {})
-        results = [provider.send(notification) for provider in self.providers]
-        return all(results)
+        success = True
+        for provider in self.providers:
+            try:
+                if not provider.send(notification):
+                    success = False
+            except Exception:
+                LOGGER.exception("Notification provider %s raised an unexpected error", type(provider).__name__)
+                success = False
+        return success
 
     def startup(self) -> bool:
         """Optionally emit a framework startup message."""
