@@ -26,7 +26,7 @@ class FanController:
 
     @staticmethod
     def fan_curve(temperature: float, off_temp: float, max_temp: float) -> int:
-        """Map temperature to the Linux PWM range (0–255), linearly clamped."""
+        """Map temperature to the Linux PWM range (0-255), linearly clamped."""
         if max_temp <= off_temp:
             raise ValueError("max_temp must be greater than off_temp.")
         if temperature <= off_temp:
