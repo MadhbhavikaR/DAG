@@ -75,11 +75,11 @@ if not success:
     raise SystemExit("One or more notification providers failed")
 ```
 
-This first cut exposes the reusable core API. The older scheduled DietPi update-check loop is intentionally not part of the framework core; it should be implemented as a separate extension if needed.
+The framework currently provides the reusable notification API, configuration loader, and generic webhook delivery. The scheduled DietPi update-check loop from the initial service reference is intentionally not part of the framework core; implement it as an independent extension or application if required.
 
 ## Fail2ban Telegram extension
 
-The Fail2ban integration lives in `extensions/fail2ban-telegram/`. Read its [extension documentation](extensions/fail2ban-telegram/README.md) for installation and configuration. It preserves the Fail2ban action callbacks while improving network timeouts, error handling, and configuration persistence.
+The Fail2ban integration lives in `extensions/fail2ban-telegram/`. Read its [extension documentation](extensions/fail2ban-telegram/README.md) for installation and configuration. It preserves Fail2ban action callbacks while improving network timeouts, error handling, and configuration persistence.
 
 ## Development and quality checks
 
@@ -100,7 +100,8 @@ The same checks run in GitHub Actions for Python 3.10, 3.11, and 3.12. Tests sho
 - [Webhook configuration](docs/config.md)
 - [Installation and operations](docs/installation.md)
 - [Development and release process](docs/development.md)
-- [Extension authoring](extensions/README.md)
+- [Extension authoring](docs/extension-authoring.md)
+- [Extensions overview](extensions/README.md)
 
 ## Releases
 
@@ -111,7 +112,7 @@ git tag Notifier-Service_0.1.0
 git push origin Notifier-Service_0.1.0
 ```
 
-A GitHub Actions workflow validates the name and creates a GitHub Release with generated release notes.
+The GitHub Actions workflow validates the name and creates a GitHub Release with generated release notes.
 
 ## Licensing
 
