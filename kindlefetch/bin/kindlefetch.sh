@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # KindleFetch
-# Maintained as part of the DAG Kindle-Fetch branch
+# Maintained as part of DAG's Kindle-Fetch branch
 
 # Variables
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
