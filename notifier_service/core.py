@@ -39,7 +39,10 @@ class NotifierService:
                 if not provider.send(notification):
                     success = False
             except Exception:
-                LOGGER.exception("Notification provider %s raised an unexpected error", type(provider).__name__)
+                LOGGER.exception(
+                    "Notification provider %s raised an unexpected error",
+                    type(provider).__name__,
+                )
                 success = False
         return success
 
