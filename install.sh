@@ -8,7 +8,7 @@ if ! { [ -f /etc/prettyversion.txt ] || [ -d /mnt/us ] || pgrep lipc-daemon >/de
 fi
 OWNER_REPO="MadhbhavikaR/DAG"
 BRANCH="Kindle-Fetch"
-API_URL="https://api.github.com/repos/${OWNER_REPO}/commits/${BRANCH}"
+API_URL="https://api.github.com/repos/${OWNER_REPO}/commits?sha=${BRANCH}&per_page=1"
 ZIP_URL="https://github.com/${OWNER_REPO}/archive/refs/heads/${BRANCH}.zip"
 ZIP_FILE=/mnt/us/kindlefetch-repo.zip
 EXTRACTED_DIR="/mnt/us/DAG-Kindle-Fetch"
