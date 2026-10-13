@@ -27,8 +27,10 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-      - name: Sync locked developer tools
-        run: uv sync --locked --dev
+      - name: Update and sync the lockfile
+        run: |
+          uv lock
+          uv sync --locked --dev
       - name: Compile Python modules
         run: uv run python -m py_compile src/__init__.py src/annas_archive.py src/config.py src/constants.py tools/build_plugin.py
       - name: Run offline regression tests

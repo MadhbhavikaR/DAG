@@ -22,17 +22,13 @@ class BuildPluginTests(unittest.TestCase):
         build_plugin.ROOT = self.root
         build_plugin.SRC = self.root / "src"
         build_plugin.SRC.mkdir()
-        (self.root / "pyproject.toml").write_text(
-            '[project]\nname = "test-plugin-dev"\n',
-            encoding="utf-8",
-        )
         (self.root / "src" / "__init__.py").write_text(
-            "class AnnasArchiveStore:\n    version = (1, 2, 3)\n",
+            "class AnnasArchiveStore:\\n    version = (1, 2, 3)\\n",
             encoding="utf-8",
         )
         for name in build_plugin.REQUIRED_FILES:
             if name != "__init__.py":
-                (self.root / "src" / name).write_text(f"fixture for {name}\n", encoding="utf-8")
+                (self.root / "src" / name).write_text(f"fixture for {name}\\n", encoding="utf-8")
 
     def tearDown(self):
         build_plugin.ROOT = self.original_root
@@ -43,14 +39,14 @@ class BuildPluginTests(unittest.TestCase):
         self.assertEqual(build_plugin.read_version(), "1.2.3")
 
     def test_rejects_invalid_plugin_metadata_version(self):
-        (self.root / "__init__.py").write_text(
-            'class AnnasArchiveStore:\n    version = "9.9.9"\n',
+        (self.root / "src" / "__init__.py").write_text(
+            'class AnnasArchiveStore:\\n    version = "9.9.9"\\n',
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "three-part integer tuple"):
             build_plugin.read_version()
 
-    def test_archive_name_contains_branch_and_version(self):
+    def test_archive_name_contains_project_and_version(self):
         self.assertEqual(
             build_plugin.archive_path("1.2.3"),
             self.root / "dist" / "annas-archieve-callibre-plugin-v1.2.3.zip",
@@ -70,7 +66,7 @@ class BuildPluginTests(unittest.TestCase):
         with ZipFile(output) as archive:
             packaged = archive.read("__init__.py").decode("utf-8")
         self.assertIn("version = (1, 2, 3)", packaged)
-        self.assertEqual((self.root / "__init__.py").read_text(encoding="utf-8"), original_source)
+        self.assertEqual((self.root / "src" / "__init__.py").read_text(encoding="utf-8"), original_source)
 
     def test_invalid_release_version_cannot_be_injected(self):
         with self.assertRaisesRegex(ValueError, "Release version must be MAJOR.MINOR.PATCH"):
