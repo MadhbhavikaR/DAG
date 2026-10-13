@@ -1,3 +1,5 @@
+"""Provide a small Fail2ban stub when tests run outside a Linux host."""
+
 import sys
 import types
 
@@ -9,6 +11,8 @@ except ImportError:
     actions_module = types.ModuleType("fail2ban.server.actions")
 
     class ActionBase:
+        """Minimal initializer needed to import the action during unit tests."""
+
         def __init__(self, jail: object, name: str) -> None:
             self.jail = jail
             self.name = name
