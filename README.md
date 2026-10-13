@@ -93,4 +93,4 @@ Additional setup notes and operational guidance live in `docs/`.
 
 ## License
 
-Licensed under the GNU General Public License, version 3 or (at your option) any later version. See [LICENSE](LICENSE).
+The migrated Fail2ban action is licensed under GPL-3.0-or-later; see [LICENSE-GPL-3.0](LICENSE-GPL-3.0) and [the license notice](docs/LICENSE-NOTICE.md). DAG's repository-level license remains in [LICENSE](LICENSE).
