@@ -50,10 +50,14 @@ jobs:
           VERSION="$(uv run python tools/build_plugin.py --version-only)"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           uv run python tools/build_plugin.py
-      - name: Upload plugin build artifact
+          mkdir -p dist/installable
+          python -m zipfile -e "dist/annas-archieve-calibre-plugin-v${VERSION}.zip" dist/installable
+      - name: Upload installable plugin ZIP
         uses: actions/upload-artifact@v4
         with:
           name: annas-archieve-calibre-plugin-dev-${{ github.sha }}
-          path: dist/annas-archieve-calibre-plugin-v${{ steps.build.outputs.version }}.zip
+          # Upload the plugin's files directly so the downloaded artifact ZIP
+          # itself has __init__.py at its root and can be installed in Calibre.
+          path: dist/installable/*
           if-no-files-found: error
           retention-days: 30
