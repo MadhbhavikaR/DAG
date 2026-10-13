@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "DAG-Jetson-Nano-4GB-Fan_Control_[0-9]*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag format and semantic version
+        id: version
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EXPECTED_PREFIX: "DAG-Jetson-Nano-4GB-Fan_Control_"
+        run: |
+          set -euo pipefail
+
+          if [[ "${TAG_NAME}" != "${EXPECTED_PREFIX}"* ]]; then
+            echo "Tag must start with ${EXPECTED_PREFIX}" >&2
+            exit 1
+          fi
+
+          version="${TAG_NAME#"${EXPECTED_PREFIX}"}"
+          if [[ ! "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$ ]]; then
+            echo "Expected a semantic version like 1.2.3, 1.2.3-rc.1, or 1.2.3+build.4" >&2
+            exit 1
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "${TAG_NAME}" \
+            --title "Jetson Nano Fan Control ${VERSION}" \
+            --generate-notes
