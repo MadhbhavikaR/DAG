@@ -44,9 +44,7 @@ def load_config(path: str | Path) -> NotifierConfig:
 
         urls = _as_list(raw_urls)
         headers = _as_list(destination.get("HEADER", [{} for _ in urls]))
-        payloads = _as_list(
-            destination.get("PAYLOAD", [{"message": "message"} for _ in urls])
-        )
+        payloads = _as_list(destination.get("PAYLOAD", [{"message": "message"} for _ in urls]))
         formats = _as_list(destination.get("FORMAT_MESSAGE", ["text"] * len(urls)))
 
         if not (len(urls) == len(headers) == len(payloads) == len(formats)):
