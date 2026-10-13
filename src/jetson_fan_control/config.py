@@ -24,9 +24,13 @@ class FanConfig:
         try:
             raw: Any = json.loads(path.read_text(encoding="utf-8"))
         except OSError as exc:
-            raise ValueError(f"Cannot read configuration file {path}: {exc}") from exc
+            raise ValueError(
+                f"Cannot read configuration file {path}: {exc}"
+            ) from exc
         except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid JSON in configuration file {path}: {exc}") from exc
+            raise ValueError(
+                f"Invalid JSON in configuration file {path}: {exc}"
+            ) from exc
 
         if not isinstance(raw, dict):
             raise ValueError("Configuration must be a JSON object.")
@@ -37,7 +41,9 @@ class FanConfig:
             interval = float(raw.get("UPDATE_INTERVAL", 2.0))
             max_perf_value = raw.get("MAX_PERF", False)
             if isinstance(max_perf_value, str):
-                raise ValueError("MAX_PERF must be a boolean or number, not a string.")
+                raise ValueError(
+                    "MAX_PERF must be a boolean or number, not a string."
+                )
             config = cls(
                 fan_off_temp=off_temp,
                 fan_max_temp=max_temp,
@@ -46,7 +52,7 @@ class FanConfig:
             )
         except (TypeError, ValueError) as exc:
             raise ValueError(
-                "Configuration values must be numeric (MAX_PERF may be boolean or numeric)."
+                "Configuration values must be numeric; MAX_PERF may be boolean."
             ) from exc
 
         config.validate()
@@ -56,7 +62,9 @@ class FanConfig:
         """Reject values that would make the controller unusable."""
         values = (self.fan_off_temp, self.fan_max_temp, self.update_interval)
         if not all(math.isfinite(value) for value in values):
-            raise ValueError("Temperature thresholds and UPDATE_INTERVAL must be finite.")
+            raise ValueError(
+                "Temperature thresholds and UPDATE_INTERVAL must be finite."
+            )
         if self.fan_max_temp <= self.fan_off_temp:
             raise ValueError("FAN_MAX_TEMP must be greater than FAN_OFF_TEMP.")
         if self.update_interval <= 0:
