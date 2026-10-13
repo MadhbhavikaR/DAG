@@ -24,9 +24,7 @@ class FanConfig:
         try:
             raw: Any = json.loads(path.read_text(encoding="utf-8"))
         except OSError as exc:
-            raise ValueError(
-                f"Cannot read configuration file {path}: {exc}"
-            ) from exc
+            raise ValueError(f"Cannot read configuration file {path}: {exc}") from exc
         except json.JSONDecodeError as exc:
             raise ValueError(
                 f"Invalid JSON in configuration file {path}: {exc}"
@@ -41,9 +39,7 @@ class FanConfig:
             interval = float(raw.get("UPDATE_INTERVAL", 2.0))
             max_perf_value = raw.get("MAX_PERF", False)
             if isinstance(max_perf_value, str):
-                raise ValueError(
-                    "MAX_PERF must be a boolean or number, not a string."
-                )
+                raise ValueError("MAX_PERF must be a boolean or number, not a string.")
             config = cls(
                 fan_off_temp=off_temp,
                 fan_max_temp=max_temp,
