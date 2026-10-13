@@ -4,8 +4,9 @@ version = "0.1.0"
 description = "Fail2ban action that sends ban and unban notifications to Telegram."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "GPL-3.0-or-later" }
+license = "GPL-3.0-or-later"
 dependencies = [
+    "fail2ban>=1.0.2",
     "requests>=2.32.0,<3.0.0",
 ]
 
