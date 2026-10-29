@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["main", "DAG-Template-Python"]
+    branches: ["main", "DAG-Template-Python", "DAG-Manager"]
   pull_request:
-    branches: ["main", "DAG-Template-Python"]
+    branches: ["main", "DAG-Template-Python", "DAG-Manager"]
   workflow_dispatch:
 
 permissions:
@@ -32,17 +32,19 @@ jobs:
         with:
           python-version-file: .python-version
 
-      - name: Install project and development dependencies
-        run: uv sync --all-groups
+      - name: Resolve lockfile and install project
+        run: |
+          uv lock --system-certs
+          uv sync --system-certs --all-groups
 
       - name: Check formatting
-        run: uv run ruff format --check .
+        run: uv run --system-certs ruff format --check .
 
       - name: Lint
-        run: uv run ruff check .
+        run: uv run --system-certs ruff check src tests
 
       - name: Type check
-        run: uv run mypy
+        run: uv run --system-certs mypy
 
       - name: Test with coverage
-        run: uv run pytest --cov --cov-report=term-missing
+        run: uv run --system-certs pytest --cov --cov-report=term-missing
