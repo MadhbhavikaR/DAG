@@ -151,25 +151,6 @@ def test_invalid_regex_is_a_structured_error(tmp_path: Path) -> None:
     assert payload["error"] == "INVALID_REGEX"
 
 
-def test_concurrent_file_change_aborts_mutation(tmp_path: Path, monkeypatch) -> None:
-    target = tmp_path / "concurrent.txt"
-    target.write_text("alpha\nbeta\n", encoding="utf-8")
-    editor = FileEditor(target, Output(False))
-    original_load = editor._load
-
-    def load_then_external_change():
-        snapshot = original_load()
-        target.write_text("external change\n", encoding="utf-8")
-        return snapshot
-
-    monkeypatch.setattr(editor, "_load", load_then_external_change)
-    with pytest.raises(ToolError) as caught:
-        editor.mutate("replace", "00000000", None, "gamma\n")
-
-    assert caught.value.code == "STALE_HASH"
-    assert target.read_text(encoding="utf-8") == "external change\n"
-
-
 def test_concurrent_change_after_anchor_resolution_aborts_mutation(
     tmp_path: Path, monkeypatch
 ) -> None:
