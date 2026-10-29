@@ -15,7 +15,7 @@ from .text_utils import TextUtils
 
 
 class FileEditor:
-    def __init__(self, path: Path, output: "Output"):
+    def __init__(self, path: Path, output: Output):
         self.path = path
         self.output = output
 
