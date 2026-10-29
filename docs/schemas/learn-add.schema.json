@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/learn-add.schema.json",
+  "title": "manager learn add response",
+  "type": "object",
+  "required": ["id", "recorded_at", "task", "phase", "severity"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^LEARN-\\d{4}$" },
+    "recorded_at": { "type": "string" },
+    "task": { "type": "string" },
+    "phase": { "type": "string" },
+    "severity": { "type": "string", "enum": ["low", "medium", "high"] }
+  },
+  "additionalProperties": false
+}

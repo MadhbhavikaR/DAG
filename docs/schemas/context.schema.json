@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/context.schema.json",
+  "title": "manager context response",
+  "type": "object",
+  "required": ["task", "phase", "compact", "max_chars", "records"],
+  "properties": {
+    "task": { "type": "string" },
+    "phase": { "type": ["string", "null"] },
+    "compact": { "type": "boolean" },
+    "max_chars": { "type": "integer", "minimum": 1 },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "content", "compact"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["finding", "decision", "evidence"] },
+          "content": { "type": "string" },
+          "compact": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/status.schema.json",
+  "title": "manager status response",
+  "type": "object",
+  "required": ["format_version", "root", "commit_mode", "total", "states", "current", "blocked"],
+  "properties": {
+    "format_version": { "type": "string" },
+    "root": { "type": "string" },
+    "commit_mode": { "type": "string", "enum": ["enabled", "disabled"] },
+    "total": { "type": "integer", "minimum": 0 },
+    "states": {
+      "type": "object",
+      "required": ["draft", "planned", "active", "expand", "blocked", "done"],
+      "properties": {
+        "draft": { "type": "integer", "minimum": 0 },
+        "planned": { "type": "integer", "minimum": 0 },
+        "active": { "type": "integer", "minimum": 0 },
+        "expand": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "done": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "current": {
+      "type": "object",
+      "required": ["task", "phase", "step", "role"],
+      "properties": {
+        "task": { "type": "string" },
+        "phase": { "type": "string" },
+        "step": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "blocked": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["task", "blocker", "recovery", "action"],
+          "properties": {
+            "task": { "type": "string" },
+            "blocker": { "type": "string" },
+            "recovery": { "type": "string" },
+            "action": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

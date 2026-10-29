@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/error.schema.json",
+  "title": "manager error response",
+  "type": "object",
+  "required": ["error", "what", "do", "hint", "gotcha"],
+  "properties": {
+    "error": { "type": "string" },
+    "what": { "type": "string" },
+    "do": { "type": "string" },
+    "hint": { "type": "string" },
+    "gotcha": { "type": "string" },
+    "schema_path": { "type": "string" }
+  },
+  "additionalProperties": false
+}

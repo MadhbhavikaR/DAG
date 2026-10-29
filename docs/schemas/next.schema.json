@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/next.schema.json",
+  "title": "manager next response",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "task",
+        "agent_id",
+        "task_state",
+        "phase",
+        "role",
+        "objective",
+        "action",
+        "load",
+        "accept",
+        "boundary",
+        "return_schema",
+        "return_schema_path",
+        "submit_command",
+        "next_command",
+        "output_limit",
+        "recommended_context_command",
+        "micro_cycle",
+        "retry",
+        "rules"
+      ],
+      "properties": {
+        "task": { "type": "string" },
+        "agent_id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "task_state": { "type": "string" },
+        "phase": { "type": "string" },
+        "role": { "type": ["string", "null"] },
+        "step": { "type": ["string", "null"] },
+        "objective": { "type": "string" },
+        "action": { "type": "string" },
+        "load": { "type": "array", "items": { "type": "string" } },
+        "accept": { "type": "array", "items": { "type": "string" } },
+        "boundary": { "type": "array", "items": { "type": "string" } },
+        "return_schema": { "type": "object" },
+        "return_schema_path": { "type": "string" },
+        "submit_command": { "type": "string", "const": "manager submit" },
+        "next_command": { "type": "string" },
+        "output_limit": { "type": "integer", "minimum": 1 },
+        "recommended_context_command": { "type": "string" },
+        "micro_cycle": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "retry": { "type": "array", "items": { "type": "string" } },
+        "rules": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["result", "what", "do", "hint", "next_commands", "schema_path"],
+      "properties": {
+        "result": { "type": "string", "const": "NO_TASK" },
+        "what": { "type": "string" },
+        "do": { "type": "string" },
+        "hint": { "type": "string" },
+        "next_commands": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "schema_path": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

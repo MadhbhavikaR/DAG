@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/status-compact.schema.json",
+  "title": "manager status compact response",
+  "type": "object",
+  "required": ["ok", "task", "phase", "step", "role"],
+  "properties": {
+    "ok": { "type": "boolean", "const": true },
+    "task": { "type": "string" },
+    "phase": { "type": "string" },
+    "step": { "type": "string" },
+    "role": { "type": "string" }
+  },
+  "additionalProperties": false
+}

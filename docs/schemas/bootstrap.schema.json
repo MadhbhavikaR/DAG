@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/bootstrap.schema.json",
+  "title": "manager bootstrap response",
+  "type": "object",
+  "required": [
+    "protocol",
+    "prompt",
+    "startup_commands",
+    "micro_cycle",
+    "error_contract",
+    "status"
+  ],
+  "properties": {
+    "protocol": { "type": "string" },
+    "prompt": { "type": "string" },
+    "startup_commands": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "micro_cycle": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "error_contract": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "status": {
+      "type": "object",
+      "required": ["ok", "task", "phase", "step", "role"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "task": { "type": "string" },
+        "phase": { "type": "string" },
+        "step": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

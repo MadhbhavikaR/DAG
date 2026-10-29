@@ -1,0 +1,18 @@
+[project]
+name = "manager"
+version = "1.0.0-rc"
+description = "Deterministic work orchestration controller"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+manager = "manager.cli:main"
+
+[dependency-groups]
+dev = []
+
+[build-system]
+requires = []
+build-backend = "build_backend"
+backend-path = ["."]

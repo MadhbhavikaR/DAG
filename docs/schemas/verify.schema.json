@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/verify.schema.json",
+  "title": "manager verify response",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": ["ok", "state"],
+      "properties": {
+        "ok": { "type": "boolean", "const": true },
+        "state": { "type": "string", "const": "NO_STATE" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["ok", "format_version", "total_tasks", "current"],
+      "properties": {
+        "ok": { "type": "boolean", "const": true },
+        "format_version": { "type": "string" },
+        "total_tasks": { "type": "integer", "minimum": 0 },
+        "current": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

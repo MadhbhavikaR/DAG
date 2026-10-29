@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/learn-list.schema.json",
+  "title": "manager learn list response",
+  "type": "object",
+  "required": ["records"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "recorded_at", "task", "phase", "severity", "issue", "error_code", "impact", "suggestion", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^LEARN-\\d{4}$" },
+          "recorded_at": { "type": "string" },
+          "task": { "type": "string" },
+          "phase": { "type": "string" },
+          "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+          "issue": { "type": "string" },
+          "error_code": { "type": "string" },
+          "impact": { "type": "string" },
+          "suggestion": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

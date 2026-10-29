@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/submit-schema.schema.json",
+  "title": "manager submit-schema response",
+  "type": "object",
+  "required": [
+    "task",
+    "phase",
+    "return_schema",
+    "return_schema_path",
+    "output_limit",
+    "submit_command",
+    "recommended_context_command",
+    "micro_cycle"
+  ],
+  "properties": {
+    "task": { "type": "string" },
+    "phase": { "type": "string" },
+    "return_schema": { "type": "object" },
+    "return_schema_path": { "type": "string" },
+    "output_limit": { "type": "integer", "minimum": 1 },
+    "submit_command": { "type": "string", "const": "manager submit" },
+    "recommended_context_command": { "type": "string" },
+    "micro_cycle": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+  },
+  "additionalProperties": false
+}

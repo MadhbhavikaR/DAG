@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/examples.schema.json",
+  "title": "manager examples response",
+  "type": "object",
+  "required": ["examples"],
+  "properties": {
+    "examples": {
+      "type": "object",
+      "required": ["analysis", "planning", "implementation", "step_validation", "step_commit", "final_validation", "final_commit"],
+      "properties": {
+        "analysis": { "type": "object" },
+        "planning": { "type": "object" },
+        "implementation": { "type": "object" },
+        "step_validation": { "type": "object" },
+        "step_commit": { "type": "object" },
+        "final_validation": { "type": "object" },
+        "final_commit": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

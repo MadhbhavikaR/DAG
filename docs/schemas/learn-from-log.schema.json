@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manager/learn-from-log.schema.json",
+  "title": "manager learn from-log response",
+  "type": "object",
+  "required": ["records", "rcas", "created_tasks", "reminder"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rcas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "error", "what", "count", "first_seen", "last_seen", "commands", "suggested_fix"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^RCA-\\d{4}$" },
+          "error": { "type": "string" },
+          "what": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 },
+          "first_seen": { "type": "string" },
+          "last_seen": { "type": "string" },
+          "commands": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "suggested_fix": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "created_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^S\\d{5}T\\d{5}(?:-\\d+)*$" },
+          "title": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "reminder": { "type": "string" }
+  },
+  "additionalProperties": false
+}
