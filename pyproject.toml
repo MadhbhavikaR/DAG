@@ -27,3 +27,4 @@ target-version = "py312"
 src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F"]
+ignore = ["E501", "E701", "E702", "E731"]

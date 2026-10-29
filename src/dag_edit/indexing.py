@@ -9,7 +9,6 @@ from pathlib import Path
 from .config import Config
 from .errors import ErrorHandler
 from .hashing import HashEngine
-from .text_utils import TextUtils
 
 
 class IndexManager:

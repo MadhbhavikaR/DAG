@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from pathlib import Path
 from .config import Config
 from .errors import ErrorHandler
 from .text_utils import TextUtils
