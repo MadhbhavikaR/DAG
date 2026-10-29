@@ -3,40 +3,98 @@ name: Release
 on:
   push:
     tags:
-      - "DAG-Template-Python_*"
+      - "DAG-Manager_*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish (for example DAG-Manager_0.0.1)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   release:
-    name: Validate tag and publish release
+    name: Build distributions and publish release assets
     runs-on: ubuntu-latest
     steps:
-      - name: Check out tagged source
-        uses: actions/checkout@v4
-
-      - name: Validate tag format
+      - name: Resolve release tag
+        id: release
+        shell: bash
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^DAG-Template-Python_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Invalid tag '$RELEASE_TAG'. Expected DAG-Template-Python_X.Y.Z using semantic versioning."
+          if [[ -n "${INPUT_TAG}" ]]; then
+            tag="${INPUT_TAG}"
+          elif [[ "${REF_TYPE}" == "tag" ]]; then
+            tag="${REF_NAME}"
+          else
+            echo "::error::For manual runs, provide the existing release tag."
             exit 1
           fi
+          if [[ ! "${tag}" =~ ^DAG-Manager_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid tag '${tag}'. Expected DAG-Manager_X.Y.Z with an optional prerelease/build suffix."
+            exit 1
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Validate package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pyproject.toml || { echo "::error::Tagged source has no pyproject.toml; cannot build Python distributions."; exit 1; }
+          test -f build_backend.py || { echo "::error::Tagged source has no build_backend.py."; exit 1; }
+          test -d src/manager || { echo "::error::Tagged source has no src/manager package."; exit 1; }
+
+      - name: Build wheel and source distribution
+        run: uv build --wheel --sdist
+
+      - name: Verify distributions
+        shell: bash
+        run: |
+          set -euo pipefail
+          compgen -G "dist/*.whl" >/dev/null || { echo "::error::Wheel was not produced."; exit 1; }
+          compgen -G "dist/*.tar.gz" >/dev/null || { echo "::error::Source distribution was not produced."; exit 1; }
+          ls -lh dist/
+
+      - name: Create release if absent
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
         run: |
-          gh release create "$RELEASE_TAG" \
-            --verify-tag \
-            --title "$RELEASE_TAG" \
-            --generate-notes
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes --prerelease
+          fi
+
+      - name: Upload wheel and source distribution
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz --clobber
