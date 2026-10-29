@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
+[project.scripts]
+dag-template-python = "dag_template_python.cli:main"
+
 [dependency-groups]
 dev = [
     "mypy>=1.13.0",
