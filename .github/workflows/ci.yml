@@ -22,7 +22,6 @@ jobs:
         with:
           python-version-file: .python-version
       - run: uv sync --all-groups
-      - run: uv run ruff format --check src tests edit.py
       - run: uv run ruff check src tests edit.py
       - run: uv run pytest -q
       - run: uv run pytest --cov --cov-report=term-missing

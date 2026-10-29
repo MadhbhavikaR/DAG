@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import secrets
-import stat
 import tempfile
 from pathlib import Path
 from .config import Config

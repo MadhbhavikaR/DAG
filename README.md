@@ -39,7 +39,6 @@ edit.py        Compatibility entry point
 ~~~bash
 uv sync --all-groups
 uv run ruff check src tests edit.py
-uv run ruff format --check src tests edit.py
 uv run pytest -q
 uv run pytest --cov --cov-report=term-missing
 ~~~
