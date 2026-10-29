@@ -8,6 +8,27 @@ It is JSON-first by default. Every automation should consume JSON envelopes, not
 
 Before making any change, read [AGENTS.md](./AGENTS.md). It defines the binding development contract, verification gates, and AGENTS hierarchy rules for this repository.
 
+## Setup with uv
+
+Requires Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync --all-groups
+uv run --system-certs manager --prompt
+uv run --system-certs manager next
+uv run --system-certs manager submit-schema
+uv run --system-certs ruff check src tests
+uv run --system-certs pytest -q
+```
+
+The project uses setuptools with a standard PEP 517 build backend and a src-layout package. Build a wheel and source archive with:
+
+```bash
+uv build --wheel --sdist
+```
+
+Generated distributions are written to dist/.
+
 ## Who This Is For
 
 - Agent and tool authors integrating with manager commands
@@ -33,44 +54,24 @@ Do not edit .manager directly.
 ## Quick Start
 
 ```bash
-uv sync
-uv run manager --prompt
-uv run manager next
-uv run manager submit-schema
-uv run manager submit < result.json
-```
-
-For low-context execution, prefer this cycle:
-
-```bash
-uv run manager next
-uv run manager context --compact --max-chars 1200
-uv run manager submit-schema
-uv run manager submit < result.json
+uv run --system-certs manager next
+uv run --system-certs manager context --compact --max-chars 1200
+uv run --system-certs manager submit-schema
+uv run --system-certs manager submit < result.json
 ```
 
 ## Command Reference
 
-- uv run manager next
-	Returns the active execution envelope and authoritative next action.
-- uv run manager context
-	Resolves allowed context records from the active envelope.
-- uv run manager submit-schema
-	Returns only the currently accepted submit schema for the active phase.
-- uv run manager submit-schema --schema-path
-	Returns a direct path to the active RETURN_SCHEMA cache file.
-- uv run manager submit
-	Submits a phase result and advances state if accepted.
-- uv run manager bootstrap
-	Returns prompt, startup command cycle, and compact status in one packet.
-- uv run manager status --compact
-	Returns a machine-oriented one-line status envelope.
-- uv run manager verify
-	Runs read-only consistency and integrity checks.
-- uv run manager examples
-	Emits minimal valid submit payload examples by phase.
-- uv run manager learn add, uv run manager learn list, and uv run manager learn from-log --create-tasks
-	Records and retrieves recurring operator/model friction.
+- `manager next`: Returns the active execution envelope and authoritative next action.
+- `manager context`: Resolves allowed context records from the active envelope.
+- `manager submit-schema`: Returns only the currently accepted submit schema for the active phase.
+- `manager submit-schema --schema-path`: Returns a direct path to the active RETURN_SCHEMA cache file.
+- `manager submit`: Submits a phase result and advances state if accepted.
+- `manager bootstrap`: Returns prompt, startup command cycle, and compact status in one packet.
+- `manager status --compact`: Returns a machine-oriented one-line status envelope.
+- `manager verify`: Runs read-only consistency and integrity checks.
+- `manager examples`: Emits minimal valid submit payload examples by phase.
+- `manager learn add`, `manager learn list`, and `manager learn from-log --create-tasks`: Records and retrieves recurring operator/model friction.
 
 ## Protocol Sources
 
@@ -103,10 +104,8 @@ uv run manager submit < result.json
 
 ## Task Identity and Filenames
 
-- Task files use sortable fixed-width names, for example:
-	TODO-00-ACTIVE-03-S00001T00001.md
-- Decomposition task IDs remain hierarchical, for example:
-	S00001T00001-0000001-0000001
+- Task files use sortable fixed-width names, for example: `TODO-00-ACTIVE-03-S00001T00001.md`
+- Decomposition task IDs remain hierarchical, for example: `S00001T00001-0000001-0000001`
 
 ## Test Suite
 
@@ -118,5 +117,5 @@ Runtime implementation uses only the Python standard library.
 
 ## Release
 
-- Application version: 1.0.0-rc
+- Application version: 1.0.0rc0 (PEP 440 release candidate)
 - Agent skill entrypoint: skill/manager/SKILL.md
