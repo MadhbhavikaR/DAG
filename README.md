@@ -1,17 +1,79 @@
-# DAG: Dynamically Generated Artifacts
+# DAG Template Python
 
-Welcome to **DAG (Dynamically Generated Artifacts)**, is a modular, AI-powered toolkit designed to rapidly create, deploy, and maintain custom utility tools.
+A reusable Python project template using [uv](https://docs.astral.sh/uv/) for dependency and environment management, Ruff for formatting and linting, mypy for static type checking, and pytest for testing.
 
-Instead of a monolithic toolkit, DAG uses a branch-based architecture where every every utility lives on its own dedicated branch—complete with its own source code, dependencies, environment configs, and GitHub Actions / CI/CD workflows. 
+## Requirements
 
-This isolation keeps tools lightweight, maintainable, and independently executable without polluting the main branch. AVoiding the exposure of the all the repositories to the AI.
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Git
 
-## ✨ Key Features
-🤖 AI-Generated Codebase: Utilities are dynamically designed, generated, and updated using AI models tuned for specific tasks.
+## Get started
 
-🌿 Branch-Isolated Architecture: Each utility exists on an isolated branch with zero shared dependency bloat.
+```bash
+git clone https://github.com/MadhbhavikaR/DAG.git
+cd DAG
+git switch DAG-Template-Python
+uv sync --all-groups
+uv run python -m dag_template_python.cli
+```
 
-🔄 Custom Workflows per Utility: Every tool contains tailored automated pipelines (CI/CD, scheduling, testing, deployment) isolated to its branch context.
+The template branch is named `DAG-Template-Python`. When using this repository as a starting point for a new project, rename the project in `pyproject.toml`, update the package directory under `src/`, and update the wheel package configuration and tests accordingly.
 
-🔌 Modular & Pluggable: Spin up a new branch for a new utility without risking breaking existing setups.
-*Here are a few options for your repository description, depending on where you plan to use it:
+## Project layout
+
+```text
+.
+├── .github/
+│   ├── pull_request_template.md
+│   └── workflows/
+│       ├── ci.yml
+│       └── release.yml
+├── src/
+│   └── dag_template_python/
+│       ├── __init__.py
+│       └── cli.py
+├── tests/
+│   └── test_cli.py
+├── .python-version
+├── pyproject.toml
+└── README.md
+```
+
+## Development commands
+
+```bash
+uv sync --all-groups
+uv run python -m dag_template_python.cli
+uv run ruff format .
+uv run ruff format --check .
+uv run ruff check .
+uv run ruff check --fix .
+uv run mypy
+uv run pytest --cov --cov-report=term-missing
+```
+
+CI runs formatting checks, linting, strict mypy checks, and tests with coverage on pushes and pull requests. Keep `uv.lock` committed for applications so local and CI dependency resolution stays reproducible; generate it with `uv lock` and commit it alongside dependency changes.
+
+## Releases
+
+Pushing a tag matching `DAG-Template-Python_X.Y.Z` automatically creates a GitHub Release with generated release notes. The workflow accepts stable semantic versions only: three numeric components, no leading zeroes except for zero itself, and no `v` prefix.
+
+```bash
+git switch DAG-Template-Python
+git pull --ff-only
+uv run pytest
+git tag -a DAG-Template-Python_1.0.0 -m "Release 1.0.0"
+git push origin DAG-Template-Python_1.0.0
+```
+
+The tag must point to the commit you want to release. The workflow validates the tag and uses GitHub's CLI to publish the release. The workflow requires the repository Actions token to have contents write permission.
+
+## Quality principles
+
+- Keep application code in `src/` so tests exercise the installed package layout.
+- Declare runtime dependencies in `[project].dependencies` and developer tools in `[dependency-groups].dev`.
+- Commit `uv.lock` for reproducible application environments.
+- Add tests for new behavior and keep meaningful coverage.
+- Keep type annotations explicit and run formatting, linting, and type checks before pushing.
+- Never commit secrets; use GitHub Actions secrets for credentials.
