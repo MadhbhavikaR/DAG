@@ -11,7 +11,9 @@ import pytest
 
 from dag_edit.editor import FileEditor
 from dag_edit.errors import ToolError
+from dag_edit.hashing import HashEngine
 from dag_edit.output import Output
+from dag_edit.text_utils import TextUtils
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = ROOT / "edit.py"
@@ -172,3 +174,57 @@ def test_concurrent_change_after_anchor_resolution_aborts_mutation(
 
     assert caught.value.code == "STALE_FILE"
     assert target.read_text(encoding="utf-8") == "external change\n"
+
+
+
+@pytest.mark.parametrize(
+    ("content", "newline", "expected"),
+    [
+        ("alpha", "\n", "alpha\n"),
+        ("alpha\n", "\n", "alpha\n"),
+        ("alpha\r\nbeta\r\n", "\r\n", "alpha\r\nbeta\r\n"),
+        ("alpha\rbeta\r", "\r", "alpha\rbeta\r"),
+        ("alpha\nbeta\r\ngamma\r", "\n", "alpha\nbeta\ngamma\n"),
+        ("", "\n", ""),
+    ],
+)
+def test_content_normalization_is_idempotent_and_uses_selected_newline(
+    content: str, newline: str, expected: str
+) -> None:
+    normalized = TextUtils.normalize_content(content, newline)
+    assert normalized == expected
+    assert TextUtils.normalize_content(normalized, newline) == normalized
+
+
+def test_ambiguous_hash_is_rejected() -> None:
+    index = {
+        "lines": {
+            "deadbeef": [
+                {"index": 0, "offset": 0, "length": 5},
+                {"index": 2, "offset": 10, "length": 5},
+            ]
+        }
+    }
+
+    with pytest.raises(ToolError) as caught:
+        HashEngine.resolve_unique(index, "deadbeef", Path("sample.txt"))
+
+    assert caught.value.code == "AMBIGUOUS_HASH"
+
+
+def test_hash_collision_during_mutation_does_not_write_file(
+    tmp_path: Path, monkeypatch
+) -> None:
+    target = tmp_path / "collision.txt"
+    target.write_text("alpha\nbeta\n", encoding="utf-8")
+    editor = FileEditor(target, Output(False))
+    anchor = editor._load()[4]["sequence"][1]
+    original = target.read_bytes()
+
+    monkeypatch.setattr(HashEngine, "generate_all", lambda lines: ["deadbeef"] * len(lines))
+
+    with pytest.raises(ToolError) as caught:
+        editor.mutate("replace", anchor, None, "gamma\n")
+
+    assert caught.value.code == "HASH_COLLISION"
+    assert target.read_bytes() == original
