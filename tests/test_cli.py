@@ -1,26 +1,193 @@
-"""Public CLI contract tests."""
+"""Regression tests for the public CLI and filesystem safety invariants."""
+
 import json
+import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]
-ENTRY=ROOT/"edit.py"
-def run_cli(*args: str,input_text: str|None=None)->subprocess.CompletedProcess[str]:
- return subprocess.run([sys.executable,str(ENTRY),*args],input=input_text,text=True,capture_output=True,cwd=ROOT,check=False)
-def test_prompt()->None:
- r=run_cli("--prompt"); assert r.returncode==0 and "SEARCH" in r.stdout and not r.stderr
-def test_create_search_read(tmp_path:Path)->None:
- p=tmp_path/"sample.txt"; c=run_cli("create",str(p),input_text="alpha\nbeta\n"); assert c.returncode==0
- assert json.loads(c.stdout)=={"ok":True,"operation":"create","lines":2}
- s=json.loads(run_cli("search",str(p),input_text="beta").stdout); assert s["count"]==1
- h=s["matches"][0]["hash"]; r=json.loads(run_cli("read",str(p),h).stdout); assert any(x["text"]=="beta" for x in r["context"])
-def test_replace_and_fresh_anchor(tmp_path:Path)->None:
- p=tmp_path/"sample.txt"; run_cli("create",str(p),input_text="alpha\nbeta\n"); s=json.loads(run_cli("search",str(p),input_text="beta").stdout)
- r=run_cli("replace",str(p),s["matches"][0]["hash"],input_text="gamma\n"); data=json.loads(r.stdout)
- assert r.returncode==0 and data["operation"]=="replace" and data["anchor"] and p.read_text()=="alpha\ngamma\n"
-def test_stale_anchor_error(tmp_path:Path)->None:
- p=tmp_path/"sample.txt"; run_cli("create",str(p),input_text="alpha\nbeta\n"); r=run_cli("replace",str(p),"deadbeef",input_text="gamma\n"); data=json.loads(r.stderr)
- assert r.returncode==1 and data["ok"] is False and data["error"]=="STALE_HASH"
-def test_create_never_overwrites(tmp_path:Path)->None:
- p=tmp_path/"sample.txt"; p.write_text("keep\n"); r=run_cli("create",str(p),input_text="overwrite\n"); data=json.loads(r.stderr)
- assert r.returncode==1 and data["error"]=="FILE_EXISTS" and p.read_text()=="keep\n"
+
+import pytest
+
+from dag_edit.editor import FileEditor
+from dag_edit.errors import ToolError
+from dag_edit.output import Output
+
+ROOT = Path(__file__).resolve().parents[1]
+ENTRY = ROOT / "edit.py"
+
+
+def run_cli(
+    *args: str, input_text: str | None = None
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(ENTRY), *args],
+        input=input_text,
+        text=True,
+        capture_output=True,
+        cwd=ROOT,
+        check=False,
+    )
+
+
+def create_file(path: Path, content: str) -> dict:
+    result = run_cli("create", str(path), input_text=content)
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def search_hash(path: Path, query: str) -> str:
+    result = run_cli("search", str(path), input_text=query)
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["count"] >= 1
+    return payload["matches"][0]["hash"]
+
+
+def test_prompt_is_available_without_a_file() -> None:
+    result = run_cli("--prompt")
+    assert result.returncode == 0
+    assert "SEARCH" in result.stdout
+    assert result.stderr == ""
+
+
+def test_create_search_and_read_use_json_contract(tmp_path: Path) -> None:
+    target = tmp_path / "sample.txt"
+    payload = create_file(target, "alpha\nbeta\n")
+    assert payload == {"ok": True, "operation": "create", "lines": 2}
+
+    anchor = search_hash(target, "beta")
+    result = run_cli("read", str(target), anchor)
+    read_payload = json.loads(result.stdout)
+    assert result.returncode == 0
+    assert read_payload["operation"] == "read"
+    assert any(row["text"] == "beta" for row in read_payload["context"])
+
+
+def test_replace_uses_fresh_anchor_and_reports_new_context(tmp_path: Path) -> None:
+    target = tmp_path / "sample.txt"
+    create_file(target, "alpha\nbeta\n")
+    anchor = search_hash(target, "beta")
+
+    result = run_cli("replace", str(target), anchor, input_text="gamma\n")
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0
+    assert payload["ok"] is True
+    assert payload["operation"] == "replace"
+    assert target.read_text(encoding="utf-8") == "alpha\ngamma\n"
+    assert payload["anchor"]
+
+
+def test_stale_anchor_fails_as_json_on_stderr(tmp_path: Path) -> None:
+    target = tmp_path / "sample.txt"
+    create_file(target, "alpha\nbeta\n")
+
+    result = run_cli("replace", str(target), "deadbeef", input_text="gamma\n")
+    payload = json.loads(result.stderr)
+    assert result.returncode == 1
+    assert payload["ok"] is False
+    assert payload["error"] == "STALE_HASH"
+
+
+def test_create_does_not_overwrite_existing_file(tmp_path: Path) -> None:
+    target = tmp_path / "sample.txt"
+    target.write_text("keep\n", encoding="utf-8")
+
+    result = run_cli("create", str(target), input_text="overwrite\n")
+    payload = json.loads(result.stderr)
+    assert result.returncode == 1
+    assert payload["error"] == "FILE_EXISTS"
+    assert target.read_text(encoding="utf-8") == "keep\n"
+
+
+def test_mutation_preserves_crlf_newlines(tmp_path: Path) -> None:
+    target = tmp_path / "windows.txt"
+    target.write_bytes(b"alpha\r\nbeta\r\n")
+    anchor = search_hash(target, "beta")
+
+    result = run_cli("replace", str(target), anchor, input_text="gamma\n")
+    assert result.returncode == 0, result.stderr
+    assert target.read_bytes() == b"alpha\r\ngamma\r\n"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits are required")
+def test_mutation_preserves_existing_file_mode(tmp_path: Path) -> None:
+    target = tmp_path / "mode.txt"
+    target.write_text("alpha\nbeta\n", encoding="utf-8")
+    target.chmod(0o640)
+    anchor = search_hash(target, "beta")
+
+    result = run_cli("replace", str(target), anchor, input_text="gamma\n")
+    assert result.returncode == 0, result.stderr
+    assert stat.S_IMODE(target.stat().st_mode) == 0o640
+
+
+def test_delete_can_remove_all_lines(tmp_path: Path) -> None:
+    target = tmp_path / "single.txt"
+    create_file(target, "only line\n")
+    anchor = search_hash(target, "only line")
+
+    result = run_cli("delete", str(target), anchor)
+    payload = json.loads(result.stdout)
+    assert result.returncode == 0
+    assert payload["operation"] == "delete"
+    assert payload["lines_after"] == 0
+    assert target.read_bytes() == b""
+
+
+def test_invalid_regex_is_a_structured_error(tmp_path: Path) -> None:
+    target = tmp_path / "regex.txt"
+    create_file(target, "some text\n")
+
+    result = run_cli("search", str(target), input_text="[")
+    # Literal search is the default; malformed regex syntax is only rejected
+    # when regex mode is explicitly requested.
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["count"] == 0
+
+    result = run_cli("search", str(target), "--regex", input_text="[")
+    payload = json.loads(result.stderr)
+    assert result.returncode == 1
+    assert payload["error"] == "INVALID_REGEX"
+
+
+def test_concurrent_file_change_aborts_mutation(tmp_path: Path, monkeypatch) -> None:
+    target = tmp_path / "concurrent.txt"
+    target.write_text("alpha\nbeta\n", encoding="utf-8")
+    editor = FileEditor(target, Output(False))
+    original_load = editor._load
+
+    def load_then_external_change():
+        snapshot = original_load()
+        target.write_text("external change\n", encoding="utf-8")
+        return snapshot
+
+    monkeypatch.setattr(editor, "_load", load_then_external_change)
+    with pytest.raises(ToolError) as caught:
+        editor.mutate("replace", "00000000", None, "gamma\n")
+
+    assert caught.value.code == "STALE_HASH"
+    assert target.read_text(encoding="utf-8") == "external change\n"
+
+
+def test_concurrent_change_after_anchor_resolution_aborts_mutation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    target = tmp_path / "concurrent-after-anchor.txt"
+    target.write_text("alpha\nbeta\n", encoding="utf-8")
+    editor = FileEditor(target, Output(False))
+    original_load = editor._load
+    snapshot = original_load()
+    anchor = snapshot[4]["sequence"][1]
+
+    def load_then_external_change():
+        loaded = original_load()
+        target.write_text("external change\n", encoding="utf-8")
+        return loaded
+
+    monkeypatch.setattr(editor, "_load", load_then_external_change)
+    with pytest.raises(ToolError) as caught:
+        editor.mutate("replace", anchor, None, "gamma\n")
+
+    assert caught.value.code == "STALE_FILE"
+    assert target.read_text(encoding="utf-8") == "external change\n"
