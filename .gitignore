@@ -34,3 +34,6 @@ Thumbs.db
 !.env.example
 
 # Keep uv.lock committed for reproducible application environments.
+
+# DAG-Edit local artifacts
+*.ctxidx

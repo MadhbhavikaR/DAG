@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DAG-Edit error response",
+  "type": "object",
+  "required": [
+    "ok",
+    "error",
+    "message"
+  ],
+  "properties": {
+    "ok": {
+      "const": false
+    },
+    "error": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "message": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

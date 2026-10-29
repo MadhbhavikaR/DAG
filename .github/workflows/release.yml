@@ -1,42 +1,29 @@
 name: Release
-
 on:
   push:
-    tags:
-      - "DAG-Template-Python_*"
-
+    tags: ["DAG-Edit_*"]
 permissions:
   contents: write
-
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
   release:
-    name: Validate tag and publish release
     runs-on: ubuntu-latest
     steps:
-      - name: Check out tagged source
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Validate tag format
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^DAG-Template-Python_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Invalid tag '$RELEASE_TAG'. Expected DAG-Template-Python_X.Y.Z using semantic versioning."
+          if [[ ! "$RELEASE_TAG" =~ ^DAG-Edit_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Invalid tag '$RELEASE_TAG'. Expected DAG-Edit_X.Y.Z."
             exit 1
           fi
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          gh release create "$RELEASE_TAG" \
-            --verify-tag \
-            --title "$RELEASE_TAG" \
-            --generate-notes
+        run: gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes
