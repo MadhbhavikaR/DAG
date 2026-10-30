@@ -184,7 +184,7 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         package_init = (root / "src" / "manager" / "__init__.py").read_text(
             encoding="utf-8"
         )
-        self.assertNotRegex(package_init, r'__version__\s*=\s*["\\']')
+        self.assertNotIn("__version__ =", package_init)
 
         skill = root / "skill" / "manager" / "SKILL.md"
         self.assertTrue(skill.is_file())
