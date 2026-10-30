@@ -1,9 +1,9 @@
-from __future__ import annotations
-
-
+"""Configuration values shared by the Edit application."""
 
 
 class Config:
+    """Centralized limits and filesystem conventions for Edit."""
+
     HASH_LENGTH = 8
     START_MARKER = "[START]"
     END_MARKER = "[END]"
@@ -12,10 +12,9 @@ class Config:
     MAX_CONTEXT_LINES = 12
     MAX_CONTEXT_CHARS = 1200
     MAX_OUTPUT_CHARS = 4000
-    # Long lines are clipped in output so one response cannot flood a small context window.
     MAX_LINE_CHARS = 160
-    INDEX_VERSION = 8
+    INDEX_VERSION = 9
     INDEX_SUFFIX = ".ctxidx"
-    INDEX_DIR_NAME = "edit.py"
+    INDEX_DIR_NAME = "edit"
     TRANSACTION_MARKER = ".ctxnew."
     UTF8 = "utf-8"
