@@ -32,10 +32,10 @@
 - [ ] Add stale-state/version preconditions to mutation requests.
 
 ### 4. Preserve domain invariants
-- [ ] Centralize task and step transition validation.
+- [x] Enforce task and step transition graphs at the persistence boundary; centralize step transitions in core.
 - [ ] Validate task/step/evidence/reference consistency before persistence.
-- [ ] Validate the complete proposed state before writing any record.
-- [ ] Ensure rejected operations leave authoritative state byte-for-byte unchanged.
+- [x] Validate task and step aggregate invariants before writing their records.
+- [x] Add regression coverage proving rejected task/step transitions and identity changes do not alter the persisted record.
 
 ### 5. Make multi-record operations atomic
 - [ ] Identify all operations that update multiple managed files.
