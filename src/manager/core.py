@@ -629,13 +629,23 @@ class Store:
                 )
             expected_sequence = id_subs[-1] if id_subs else id_root
             if (
-                t.status not in TASK_STATES
+                not isinstance(t.status, str)
+                or t.status not in TASK_STATES
+                or not isinstance(t.title, str)
                 or not t.title.strip()
+                or not isinstance(t.sequence, int)
+                or isinstance(t.sequence, bool)
                 or t.sequence != expected_sequence
+                or not isinstance(t.priority, int)
+                or isinstance(t.priority, bool)
                 or t.priority < 0
                 or t.priority > 99
+                or not isinstance(t.commit_mode, str)
                 or t.commit_mode not in {"enabled", "disabled"}
-                or (t.phase is not None and t.phase not in PHASE_ROLE)
+                or (
+                    t.phase is not None
+                    and (not isinstance(t.phase, str) or t.phase not in PHASE_ROLE)
+                )
             ):
                 fail(
                     "INVALID_TASK",
