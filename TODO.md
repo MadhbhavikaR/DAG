@@ -14,6 +14,8 @@
 ## Work plan
 ### 1. Eliminate mutation during reads
 - [x] Stop load_tasks from rewriting task files when UUID text can be normalized in memory.
+- [x] Remove startup reconciliation and automatic integrity repair.
+- [x] Validate existing integrity before initialization creates missing metadata.
 - [ ] Audit every load/read/verify/context/status path for writes, including normalization, index rebuilds, schema caches, and initialization.
 - [x] Add a regression test proving task loading does not rewrite a record when UUID text is normalized in memory. (Execution pending: no local checkout/test runner is available in this session.)
 
