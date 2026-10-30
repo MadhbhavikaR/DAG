@@ -15,6 +15,9 @@ These behaviors made ordinary startup and reads capable of changing authoritativ
 - Initialization validates an existing integrity manifest before creating missing workspace metadata.
 - Initialization does not reconcile task/step lifecycle state.
 - Initialization does not refresh an integrity manifest to accept detected changes.
+- Task persistence rejects task-ID changes, duplicate IDs, and illegal lifecycle transitions before writing.
+- Step persistence requires an existing owning task, preserves immutable step identity, validates the proposed complete step aggregate, and enforces the centralized step transition graph before writing.
+- Integrity manifests are schema-checked before comparison: they must map safe relative paths to lowercase SHA-256 digests.
 - Integrity mismatches are rejected and preserved for investigation.
 - Explicit administrative repair is a separate future capability. It must require operator authorization and produce an auditable before/after record.
 - Derived indexes and diagnostic telemetry are not authoritative workflow records; their write behavior must remain clearly separated from state mutations.
