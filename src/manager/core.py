@@ -573,10 +573,9 @@ class Store:
                     agent_id = normalize_agent_id(raw_agent_id)
                 except ValueError as exc:
                     raise ValueError(f"invalid task agent_id: {exc}") from exc
-                if agent_id != raw_agent_id.strip():
-                    fm["agent_id"] = agent_id
-                    atomic_write(path, frontmatter(fm) + body)
-                    protect(path)
+                # Loading managed state is a read operation. Never rewrite a
+                # task record merely because its UUID representation can be
+                # normalized; repairs must be explicit, validated mutations.
                 phase = fm.get("phase") or None
                 if phase and phase not in PHASE_ROLE:
                     raise ValueError(f"invalid phase {phase}")
