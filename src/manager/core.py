@@ -60,6 +60,18 @@ STEP_STATES = {
     "failed",
     "blocked",
 }
+STEP_TRANSITIONS = {
+    "queued": {"queued", "ready"},
+    "ready": {"ready", "active", "blocked"},
+    "active": {"active", "implemented", "blocked"},
+    "implemented": {"implemented", "validating"},
+    "validating": {"validating", "validated", "failed", "blocked"},
+    "failed": {"failed", "ready"},
+    "validated": {"validated", "committing"},
+    "committing": {"committing", "done", "blocked"},
+    "done": {"done"},
+    "blocked": {"blocked", "ready"},
+}
 
 
 def now() -> str:
