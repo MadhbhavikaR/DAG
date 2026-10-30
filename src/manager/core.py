@@ -283,15 +283,6 @@ class Store:
                 pass
         return "enabled" if self.git_info()[0] else "disabled"
 
-    def phase_for_step_status(self, step_status: str) -> str:
-        if step_status in {"ready", "active", "implemented", "failed", "blocked"}:
-            return "implementation"
-        if step_status == "validating":
-            return "step_validation"
-        if step_status in {"validated", "committing"}:
-            return "step_commit"
-        return "implementation"
-
     def initialize(self) -> None:
         # Check the persisted integrity snapshot before creating missing
         # metadata or workspace records. Otherwise a read could recreate a
