@@ -13,7 +13,6 @@ from .filesystem import FileSystemManager
 from .hashing import HashEngine
 from .indexing import IndexManager
 from .mutations import MutationRegistry
-from .output import Output
 from .ports import FileSystemPort, HashPort, IndexPort, MutationProvider, OutputPort, TextPort
 from .text_utils import TextUtils
 
