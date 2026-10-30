@@ -1456,10 +1456,25 @@ class Store:
             return
         try:
             expected = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
+        except (OSError, json.JSONDecodeError) as exc:
             fail(
                 "CORRUPT_STATE",
-                f"integrity manifest is malformed: {exc.msg}",
+                f"integrity manifest is malformed: {exc}",
+                "Restore integrity.json from a trusted manager snapshot before continuing.",
+            )
+        if not isinstance(expected, dict) or any(
+            not isinstance(rel_path, str)
+            or not rel_path
+            or Path(rel_path).is_absolute()
+            or ".." in Path(rel_path).parts
+            or "\\" in rel_path
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+            for rel_path, digest in expected.items()
+        ):
+            fail(
+                "CORRUPT_STATE",
+                "integrity manifest must map safe relative paths to SHA-256 digests",
                 "Restore integrity.json from a trusted manager snapshot before continuing.",
             )
         actual = {}
