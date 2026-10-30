@@ -17,6 +17,7 @@ from .core import (
     FORMAT_VERSION,
     PHASE_ROLE,
     STEP_STATES,
+    STEP_TRANSITIONS,
     STORY_ACTIVE_STATES,
     TASK_STATES,
     TASK_TRANSITIONS,
@@ -822,20 +823,6 @@ def get_field(body: str, name: str) -> str:
     )
     match = pattern.search(body)
     return match.group(1).strip() if match else ""
-
-
-STEP_TRANSITIONS = {
-    "queued": {"queued", "ready"},
-    "ready": {"ready", "active", "blocked"},
-    "active": {"active", "implemented", "blocked"},
-    "implemented": {"implemented", "validating"},
-    "validating": {"validating", "validated", "failed", "blocked"},
-    "failed": {"failed", "ready"},
-    "validated": {"validated", "committing"},
-    "committing": {"committing", "done", "blocked"},
-    "done": {"done"},
-    "blocked": {"blocked", "ready"},
-}
 
 
 def transition_step(step: Step, new_status: str) -> None:
