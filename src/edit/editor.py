@@ -57,8 +57,7 @@ class FileEditor:
             with self.path.open("xb") as handle:
                 handle.write(raw)
                 handle.flush()
-                import os
-                os.fsync(handle.fileno())
+                                os.fsync(handle.fileno())
         except OSError as exc:
             ErrorHandler.fail("CREATE_FAILED", f"Unable to create '{self.path}': {exc}")
 
