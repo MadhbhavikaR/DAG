@@ -20,6 +20,15 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
+    def test_support_record_write_rejects_paths_outside_managed_state(self):
+        outside = self.root / "outside.md"
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.save_record(outside, {}, "untrusted write")
+
+        self.assertEqual(error.exception.code, "INVALID_MANAGED_PATH")
+        self.assertFalse(outside.exists())
+
     def test_initialize_does_not_recreate_deleted_integrity_protected_workspace(self):
         self.store.refresh_integrity()
         workspace = self.store.meta / "workspace.md"
