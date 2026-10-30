@@ -7,3 +7,9 @@ class ManagerError(Exception):
 
     def render(self) -> str:
         return f"ERROR: {self.code}\nWHAT: {self.what}\nDO: {self.do}"
+
+
+def fail(code: str, what: str, do: str) -> None:
+    raise ManagerError(code, what, do)
+
+
