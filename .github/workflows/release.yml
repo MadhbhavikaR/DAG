@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and publish (for example DAG-Manager_0.0.1)"
+        description: "Existing tag to build and publish (for example DAG-Manager_1.0.0rc0)"
         required: true
         type: string
 
@@ -61,13 +61,16 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Validate package metadata
+      - name: Validate package layout
         shell: bash
         run: |
           set -euo pipefail
-          test -f pyproject.toml || { echo "::error::Tagged source has no pyproject.toml; cannot build Python distributions."; exit 1; }
-          test -f build_backend.py || { echo "::error::Tagged source has no build_backend.py."; exit 1; }
+          test -f pyproject.toml || { echo "::error::Tagged source has no pyproject.toml."; exit 1; }
           test -d src/manager || { echo "::error::Tagged source has no src/manager package."; exit 1; }
+          grep -q 'build-backend = "setuptools.build_meta"' pyproject.toml || {
+            echo "::error::Expected setuptools PEP 517 build backend."
+            exit 1
+          }
 
       - name: Build wheel and source distribution
         run: uv build --wheel --sdist
@@ -89,7 +92,11 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes --prerelease
+            if [[ "$RELEASE_TAG" =~ (rc|a|b|dev)[0-9]*$ ]]; then
+              gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes --prerelease
+            else
+              gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes
+            fi
           fi
 
       - name: Upload wheel and source distribution
