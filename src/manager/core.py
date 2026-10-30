@@ -11,8 +11,9 @@ import stat
 import subprocess
 import tempfile
 import uuid
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from .domain import QUEUE_CLASS, format_task_id, parse_task_id, rel_safe
 from .errors import ManagerError, fail
@@ -62,7 +63,7 @@ STEP_STATES = {
 
 
 def now() -> str:
-    return dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="seconds")
+    return dt.datetime.now(dt.UTC).astimezone().isoformat(timespec="seconds")
 
 
 def valid_timestamp(value: str) -> bool:
@@ -150,7 +151,7 @@ def frontmatter(values: dict[str, Any]) -> str:
         if isinstance(value, bool):
             value = "true" if value else "false"
         if isinstance(value, (list, dict)):
-            raise ValueError("frontmatter values must be scalar")
+            raise TypeError("frontmatter values must be scalar")
         text = str(value).replace("\r", " ").replace("\n", " ").strip()
         if ":" in text and not (text.startswith("'") and text.endswith("'")):
             text = json.dumps(text)
@@ -492,12 +493,9 @@ class Store:
         vals, body = parse_frontmatter(path.read_text(encoding="utf-8"))
         active = active_hint or ""
         if not active_hint:
-            try:
-                tasks = self.load_tasks(validate=False)
-                active_ids = [t.id for t in tasks.values() if t.status == "active"]
-                active = active_ids[0] if len(active_ids) == 1 else ""
-            except Exception:
-                active = ""
+            tasks = self.load_tasks(validate=False)
+            active_ids = [task.id for task in tasks.values() if task.status == "active"]
+            active = active_ids[0] if len(active_ids) == 1 else ""
         vals["active_task"] = active
         vals["updated"] = now()
         atomic_write(path, frontmatter(vals) + body)
@@ -560,7 +558,7 @@ class Store:
                     raise ValueError(
                         "sequence must be positive and priority must be between 0 and 99"
                     )
-                id_story, id_root, id_subs = parse_task_id(tid)
+                _, id_root, id_subs = parse_task_id(tid)
                 expected_sequence = id_subs[-1] if id_subs else id_root
                 if sequence != expected_sequence:
                     raise ValueError("task sequence does not agree with its identifier")
@@ -570,7 +568,7 @@ class Store:
                     raise ValueError("invalid commit_mode")
                 raw_agent_id = fm.get("agent_id", "")
                 if not isinstance(raw_agent_id, str):
-                    raise ValueError("agent_id must be a UUIDv4 string")
+                    raise TypeError("agent_id must be a UUIDv4 string")
                 try:
                     agent_id = normalize_agent_id(raw_agent_id)
                 except ValueError as exc:
@@ -670,13 +668,14 @@ class Store:
                     f"blocked task {t.id} has no blocker",
                     "Restore the blocker field or move the task through a valid manager transition.",
                 )
-            if t.status in {"planned", "active", "expand"}:
-                if not section_value(t.body, "WHAT") or not section_value(t.body, "DONE_WHEN"):
-                    fail(
-                        "CORRUPT_STATE",
-                        f"task {t.id} is {t.status} without WHAT and DONE_WHEN",
-                        "Restore the task definition with both WHAT and DONE_WHEN before continuing.",
-                    )
+            if t.status in {"planned", "active", "expand"} and (
+                not section_value(t.body, "WHAT") or not section_value(t.body, "DONE_WHEN")
+            ):
+                fail(
+                    "CORRUPT_STATE",
+                    f"task {t.id} is {t.status} without WHAT and DONE_WHEN",
+                    "Restore the task definition with both WHAT and DONE_WHEN before continuing.",
+                )
             if t.status == "active" and t.phase is None:
                 fail(
                     "CORRUPT_STATE",
@@ -785,7 +784,7 @@ class Store:
                 )
             try:
                 sequence = int(fm.get("sequence", ""))
-            except ValueError as exc:
+            except ValueError:
                 fail(
                     "CORRUPT_MANAGED_FILE",
                     f"step {path.name} has a non-integer sequence",
@@ -1274,7 +1273,7 @@ class Store:
         present they must have canonical identity, ownership, timestamps, and append-only
         record identities that cannot silently collide or change lifecycle semantics.
         """
-        for task_id, task in tasks.items():
+        for task_id in tasks.keys():
             for kind, path, expected_id in (
                 ("analysis", self.knowledge_dir / f"{task_id}-analysis.md", f"{task_id}-ANALYSIS"),
                 (
@@ -1635,4 +1634,4 @@ def integrity_ignored(rel_path: str, name: str) -> bool:
         return True
     # Runtime helper artifacts (schema cache, error telemetry) are manager-owned
     # diagnostics and should not fail strict state integrity checks.
-    return rel_path.startswith("runtime/") or rel_path.startswith("logs/")
+    return rel_path.startswith(("runtime/", "logs/"))
