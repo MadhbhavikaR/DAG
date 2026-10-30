@@ -1518,26 +1518,6 @@ class Store:
         )
         protect(self.meta / "integrity.json")
 
-    def can_repair_integrity_after_reconcile(self, what: str) -> bool:
-        if "missing=" in what or "added=" in what:
-            return False
-        marker = "changed="
-        if marker not in what:
-            return False
-        changed_segment = what.split(marker, 1)[1].split(";", 1)[0].strip()
-        changed = [item.strip() for item in changed_segment.split(",") if item.strip()]
-        if not changed:
-            return False
-        tasks = self.load_tasks(validate=False)
-        active = [task for task in tasks.values() if task.status == "active"]
-        if len(active) != 1:
-            return False
-        task = active[0]
-        allowed = {"workspace.md", f"tasks/{task.path.name}"}
-        for step_path in self.steps_dir.glob(f"{task.id}-STEP-*.md"):
-            allowed.add(f"steps/{step_path.name}")
-        return all(item in allowed for item in changed)
-
     def validate_integrity(self) -> None:
         path = self.meta / "integrity.json"
         if not path.exists():
