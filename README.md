@@ -26,12 +26,12 @@ The source-checkout entry point remains supported: `python edit.py --prompt`. Co
 ## Layout
 
 ~~~text
-src/dag_edit/  Runtime package, separated by responsibility
-tests/         CLI contract and filesystem safety tests
-docs/          Protocol, operations, schemas, architecture
-skill/edit/    Agent usage instructions
-.github/       CI and release workflows
-edit.py        Source-checkout compatibility entry point
+src/edit/     Runtime package, separated by responsibility
+tests/        CLI contract and filesystem safety tests
+docs/         Protocol, operations, schemas, architecture
+skill/edit/   Agent usage instructions
+.github/      CI and release workflows
+edit.py       Source-checkout compatibility entry point
 ~~~
 
 ## Development
