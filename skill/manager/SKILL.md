@@ -4,7 +4,7 @@ description: Use the Manager Agent Orchestrator as the sole controller for repos
 ---
 
 # Manager Agent Orchestrator
-Current release: 1.0.0-rc
+Current release: 0.21.1
 
 Use the `manager` CLI as the authoritative protocol surface. Treat `.manager/` as manager-owned state and never edit it directly.
 
