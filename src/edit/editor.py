@@ -53,15 +53,7 @@ class FileEditor:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         normalized = self.text.normalize_content(content, "\\n")
         raw = normalized.encode(Config.UTF8)
-        try:
-            with self.path.open("xb") as handle:
-                handle.write(raw)
-                handle.flush()
-                                os.fsync(handle.fileno())
-        except OSError as exc:
-            ErrorHandler.fail("CREATE_FAILED", f"Unable to create '{self.path}': {exc}")
-
-        FileSystemManager._fsync_directory(self.path.parent)
+        self.filesystem.create_file(self.path, raw)
         lines = normalized.splitlines(keepends=True)
         self.indexing.get_current_index(self.path, raw, lines, "\\n")
         self.output.ok({"operation": "create", "lines": len(lines)})
