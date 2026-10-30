@@ -47,7 +47,18 @@ PHASE_ROLE = {
     "final_commit": "committer",
     "complete": None,
 }
-STEP_STATES = {"queued", "ready", "active", "implemented", "validating", "validated", "committing", "done", "failed", "blocked"}
+STEP_STATES = {
+    "queued",
+    "ready",
+    "active",
+    "implemented",
+    "validating",
+    "validated",
+    "committing",
+    "done",
+    "failed",
+    "blocked",
+}
 
 
 def now() -> str:
@@ -69,10 +80,6 @@ def require_timestamp(value: str, label: str) -> None:
         raise ValueError(f"{label} must be an ISO-8601 timestamp with an explicit offset")
 
 
-
-
-
-
 def normalize_agent_id(value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError("agent_id must be a non-empty UUID string")
@@ -90,10 +97,9 @@ def generated_agent_id(task_id: str) -> str:
     return str(uuid.uuid4())
 
 
-
 def resolve_repo_path(root: Path, value: str) -> Path:
     rel = rel_safe(value)
-    target = (root / rel)
+    target = root / rel
     resolved_root = root.resolve()
     try:
         resolved = target.resolve(strict=False)
@@ -177,7 +183,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid quoted frontmatter value for '{key}'") from exc
         values[key] = value
-    return values, "".join(lines[end + 1:]).lstrip("\r\n")
+    return values, "".join(lines[end + 1 :]).lstrip("\r\n")
 
 
 def list_field(value: str | None) -> list[str]:
@@ -196,12 +202,6 @@ def fm_value(value: Any) -> str:
     if isinstance(value, list):
         return json.dumps(value, separators=(",", ":"))
     return str(value)
-
-
-
-
-
-
 
 
 class Store:
@@ -229,7 +229,13 @@ class Store:
             )
         self.meta.mkdir(parents=True, exist_ok=True)
         self.reject_managed_symlinks()
-        for p in (self.tasks_dir, self.steps_dir, self.knowledge_dir, self.evidence_dir, self.archive_dir):
+        for p in (
+            self.tasks_dir,
+            self.steps_dir,
+            self.knowledge_dir,
+            self.evidence_dir,
+            self.archive_dir,
+        ):
             if p.is_symlink():
                 fail(
                     "MANAGED_PATH_SYMLINK",
@@ -288,7 +294,14 @@ class Store:
     def reconcile_transient_execution_state(self) -> bool:
         tasks = self.load_tasks(validate=False)
         changed = False
-        executable_states = {"ready", "active", "implemented", "validating", "validated", "committing"}
+        executable_states = {
+            "ready",
+            "active",
+            "implemented",
+            "validating",
+            "validated",
+            "committing",
+        }
         for task in tasks.values():
             steps = self.load_steps(task.id)
 
@@ -347,17 +360,30 @@ class Store:
         self.initialize_dirs()
         version = self.meta / "VERSION"
         if version.exists() and version.read_text(encoding="utf-8").strip() != FORMAT_VERSION:
-            fail("UNSUPPORTED_FORMAT", "managed storage format is not supported", "Back up .manager and migrate it with a compatible manager version.")
+            fail(
+                "UNSUPPORTED_FORMAT",
+                "managed storage format is not supported",
+                "Back up .manager and migrate it with a compatible manager version.",
+            )
         if not version.exists():
             atomic_write(version, FORMAT_VERSION + "\n")
         workspace = self.meta / "workspace.md"
         if not workspace.exists():
             mode = self.commit_mode()
-            content = frontmatter({
-                "type": "workspace", "format_version": FORMAT_VERSION,
-                "workspace_id": self.workspace_id(), "created": now(), "updated": now(),
-                "active_task": "", "commit_mode": mode,
-            }) + f"# Manager Workspace\n\nRepository: {self.root}\nCommit mode: {mode}\n"
+            content = (
+                frontmatter(
+                    {
+                        "type": "workspace",
+                        "format_version": FORMAT_VERSION,
+                        "workspace_id": self.workspace_id(),
+                        "created": now(),
+                        "updated": now(),
+                        "active_task": "",
+                        "commit_mode": mode,
+                    }
+                )
+                + f"# Manager Workspace\n\nRepository: {self.root}\nCommit mode: {mode}\n"
+            )
             atomic_write(workspace, content)
         if not self.submissions_path.exists():
             atomic_write(self.submissions_path, "{}\n")
@@ -367,7 +393,9 @@ class Store:
         try:
             self.validate()
         except ManagerError as exc:
-            if exc.code != "MANAGED_FILE_TAMPERED" or not self.can_repair_integrity_after_reconcile(exc.what):
+            if exc.code != "MANAGED_FILE_TAMPERED" or not self.can_repair_integrity_after_reconcile(
+                exc.what
+            ):
                 raise
             self.refresh_integrity()
             self.validate()
@@ -406,16 +434,29 @@ class Store:
                 "Repair the task agent_id so it is a UUIDv4 before continuing.",
             )
         fm = {
-            "type": "task", "format_version": FORMAT_VERSION, "id": task.id, "title": task.title,
-            "parent": task.parent or "", "sequence": task.sequence, "priority": task.priority,
-            "status": task.status, "phase": task.phase or "", "current_step": task.current_step or "",
-            "commit_mode": task.commit_mode, "created": task.created, "updated": task.updated,
+            "type": "task",
+            "format_version": FORMAT_VERSION,
+            "id": task.id,
+            "title": task.title,
+            "parent": task.parent or "",
+            "sequence": task.sequence,
+            "priority": task.priority,
+            "status": task.status,
+            "phase": task.phase or "",
+            "current_step": task.current_step or "",
+            "commit_mode": task.commit_mode,
+            "created": task.created,
+            "updated": task.updated,
             "agent_id": task.agent_id,
-            "analysis": links["analysis"], "decisions": links["decisions"], "evidence": links["evidence"],
+            "analysis": links["analysis"],
+            "decisions": links["decisions"],
+            "evidence": links["evidence"],
             "blocker": task.blocker,
-            "final_validation": fm_value(task.final_validation), "git_base": fm_value(task.git_base),
+            "final_validation": fm_value(task.final_validation),
+            "git_base": fm_value(task.git_base),
             "git_base_head": task.git_base_head,
-            "final_commit_id": task.final_commit_id, "final_commit_message": task.final_commit_message,
+            "final_commit_id": task.final_commit_id,
+            "final_commit_message": task.final_commit_message,
         }
         body = task.body.rstrip() + "\n"
         return frontmatter(fm) + body
@@ -470,11 +511,29 @@ class Store:
             try:
                 fm, body = parse_frontmatter(path.read_text(encoding="utf-8"))
                 required = {
-                    "type", "format_version", "id", "title", "parent", "sequence",
-                    "priority", "status", "phase", "current_step", "commit_mode",
-                    "created", "updated", "analysis", "decisions", "evidence",
-                    "blocker", "final_validation", "git_base", "git_base_head",
-                    "final_commit_id", "final_commit_message", "agent_id",
+                    "type",
+                    "format_version",
+                    "id",
+                    "title",
+                    "parent",
+                    "sequence",
+                    "priority",
+                    "status",
+                    "phase",
+                    "current_step",
+                    "commit_mode",
+                    "created",
+                    "updated",
+                    "analysis",
+                    "decisions",
+                    "evidence",
+                    "blocker",
+                    "final_validation",
+                    "git_base",
+                    "git_base_head",
+                    "final_commit_id",
+                    "final_commit_message",
+                    "agent_id",
                 }
                 missing = sorted(required - set(fm))
                 if missing:
@@ -498,7 +557,9 @@ class Store:
                 except ValueError as exc:
                     raise ValueError("sequence and priority must be integers") from exc
                 if sequence <= 0 or priority < 0 or priority > 99:
-                    raise ValueError("sequence must be positive and priority must be between 0 and 99")
+                    raise ValueError(
+                        "sequence must be positive and priority must be between 0 and 99"
+                    )
                 id_story, id_root, id_subs = parse_task_id(tid)
                 expected_sequence = id_subs[-1] if id_subs else id_root
                 if sequence != expected_sequence:
@@ -522,18 +583,37 @@ class Store:
                 if phase and phase not in PHASE_ROLE:
                     raise ValueError(f"invalid phase {phase}")
                 result[tid] = Task(
-                    path=path, id=tid, title=fm.get("title", ""), parent=fm.get("parent") or None,
-                    sequence=sequence, priority=priority, status=status,
-                    phase=phase, current_step=fm.get("current_step") or None, commit_mode=fm.get("commit_mode", "disabled"),
-                    blocker=fm.get("blocker", ""), created=fm.get("created", ""), updated=fm.get("updated", ""),
-                    analysis=fm.get("analysis") or None, decisions=fm.get("decisions") or None, evidence=fm.get("evidence") or None,
-                    final_validation=list_field(fm.get("final_validation")), git_base=list_field(fm.get("git_base")),
-                    git_base_head=fm.get("git_base_head", ""), agent_id=agent_id,
-                    final_commit_id=fm.get("final_commit_id", ""), final_commit_message=fm.get("final_commit_message", ""), body=body,
+                    path=path,
+                    id=tid,
+                    title=fm.get("title", ""),
+                    parent=fm.get("parent") or None,
+                    sequence=sequence,
+                    priority=priority,
+                    status=status,
+                    phase=phase,
+                    current_step=fm.get("current_step") or None,
+                    commit_mode=fm.get("commit_mode", "disabled"),
+                    blocker=fm.get("blocker", ""),
+                    created=fm.get("created", ""),
+                    updated=fm.get("updated", ""),
+                    analysis=fm.get("analysis") or None,
+                    decisions=fm.get("decisions") or None,
+                    evidence=fm.get("evidence") or None,
+                    final_validation=list_field(fm.get("final_validation")),
+                    git_base=list_field(fm.get("git_base")),
+                    git_base_head=fm.get("git_base_head", ""),
+                    agent_id=agent_id,
+                    final_commit_id=fm.get("final_commit_id", ""),
+                    final_commit_message=fm.get("final_commit_message", ""),
+                    body=body,
                 )
             except (OSError, ValueError, KeyError) as exc:
                 if validate:
-                    fail("CORRUPT_MANAGED_FILE", f"cannot parse managed task {path.name}: {exc}", "Restore the canonical managed file or use an administrative repair procedure before continuing.")
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"cannot parse managed task {path.name}: {exc}",
+                        "Restore the canonical managed file or use an administrative repair procedure before continuing.",
+                    )
         if validate:
             self.validate_tasks(result)
         return result
@@ -543,55 +623,101 @@ class Store:
         if status not in QUEUE_CLASS:
             raise ValueError("invalid status")
         q, cls = QUEUE_CLASS[status].split("-", 1)
-        return f"TODO-{q}-{cls}-{int(fm.get('priority','3')):02d}-{fm['id']}.md"
+        return f"TODO-{q}-{cls}-{int(fm.get('priority', '3')):02d}-{fm['id']}.md"
 
     def validate_tasks(self, tasks: dict[str, Task]) -> None:
         active = [t for t in tasks.values() if t.status == "active"]
         if len(active) > 1:
-            fail("CORRUPT_STATE", "more than one task is active", "Resolve the managed task files with an administrative repair before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                "more than one task is active",
+                "Resolve the managed task files with an administrative repair before continuing.",
+            )
         seen_agent_ids: dict[str, str] = {}
         for t in tasks.values():
             try:
                 normalized_agent_id = normalize_agent_id(t.agent_id)
             except ValueError as exc:
-                fail("CORRUPT_STATE", f"task {t.id} has invalid agent_id: {exc}", "Repair managed task agent_id values so each task stores a UUIDv4.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"task {t.id} has invalid agent_id: {exc}",
+                    "Repair managed task agent_id values so each task stores a UUIDv4.",
+                )
             owner = seen_agent_ids.get(normalized_agent_id)
             if owner and owner != t.id:
-                fail("CORRUPT_STATE", f"task {t.id} reuses agent_id from {owner}", "Repair managed task agent_id values so each task has a unique UUIDv4.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"task {t.id} reuses agent_id from {owner}",
+                    "Repair managed task agent_id values so each task has a unique UUIDv4.",
+                )
             seen_agent_ids[normalized_agent_id] = t.id
             if t.parent:
                 if t.parent not in tasks:
-                    fail("CORRUPT_STATE", f"task {t.id} references missing parent {t.parent}", "Restore the parent task or repair the reference before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"task {t.id} references missing parent {t.parent}",
+                        "Restore the parent task or repair the reference before continuing.",
+                    )
                 if t.parent == t.id:
-                    fail("CORRUPT_STATE", f"task {t.id} is its own parent", "Repair the managed task hierarchy before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"task {t.id} is its own parent",
+                        "Repair the managed task hierarchy before continuing.",
+                    )
             if t.status == "blocked" and not t.blocker.strip():
-                fail("CORRUPT_STATE", f"blocked task {t.id} has no blocker", "Restore the blocker field or move the task through a valid manager transition.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"blocked task {t.id} has no blocker",
+                    "Restore the blocker field or move the task through a valid manager transition.",
+                )
             if t.status in {"planned", "active", "expand"}:
                 if not section_value(t.body, "WHAT") or not section_value(t.body, "DONE_WHEN"):
-                    fail("CORRUPT_STATE", f"task {t.id} is {t.status} without WHAT and DONE_WHEN", "Restore the task definition with both WHAT and DONE_WHEN before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"task {t.id} is {t.status} without WHAT and DONE_WHEN",
+                        "Restore the task definition with both WHAT and DONE_WHEN before continuing.",
+                    )
             if t.status == "active" and t.phase is None:
-                fail("CORRUPT_STATE", f"active task {t.id} has no execution phase", "Restore the phase using a compatible manager version or repair the task.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"active task {t.id} has no execution phase",
+                    "Restore the phase using a compatible manager version or repair the task.",
+                )
             if t.status != "active" and t.phase not in (None, ""):
-                fail("CORRUPT_STATE", f"inactive task {t.id} has execution phase {t.phase}", "Repair the task so only the active task carries an execution phase.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"inactive task {t.id} has execution phase {t.phase}",
+                    "Repair the task so only the active task carries an execution phase.",
+                )
             if t.status == "done" and t.blocker.strip():
-                fail("CORRUPT_STATE", f"done task {t.id} retains a blocker", "Repair the task so terminal tasks have no blocker.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"done task {t.id} retains a blocker",
+                    "Repair the task so terminal tasks have no blocker.",
+                )
             if t.status == "done":
                 children = [c for c in tasks.values() if c.parent == t.id]
                 if children and not all(c.status == "done" for c in children):
-                    fail("CORRUPT_STATE", f"done parent task {t.id} has incomplete or missing children", "Restore the parent and child lifecycle states so every direct child is done before parent completion.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"done parent task {t.id} has incomplete or missing children",
+                        "Restore the parent and child lifecycle states so every direct child is done before parent completion.",
+                    )
             if t.parent:
                 parent = tasks[t.parent]
                 if parse_task_id(t.id)[0:2] != parse_task_id(parent.id)[0:2]:
-                    fail("CORRUPT_STATE", f"task {t.id} is not in its parent's story/root scope", "Repair the task hierarchy before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"task {t.id} is not in its parent's story/root scope",
+                        "Repair the task hierarchy before continuing.",
+                    )
 
         # Multiple stories may coexist in the workspace, but runtime execution
         # ownership is story-scoped: only one story may hold active lifecycle
         # states (active/expand/blocked) at a time.
-        active_stories = sorted({
-            parse_task_id(t.id)[0]
-            for t in tasks.values()
-            if t.status in STORY_ACTIVE_STATES
-        })
+        active_stories = sorted(
+            {parse_task_id(t.id)[0] for t in tasks.values() if t.status in STORY_ACTIVE_STATES}
+        )
         if len(active_stories) > 1:
             fail(
                 "CORRUPT_STATE",
@@ -604,35 +730,91 @@ class Store:
         for path in sorted(self.steps_dir.glob(f"{task_id}-STEP-*.md")):
             fm, body = parse_frontmatter(path.read_text(encoding="utf-8"))
             stored_task = fm.get("task_id") or fm.get("task") or ""
-            expected_task_file = self.load_tasks(validate=False).get(task_id).path.name if task_id in self.load_tasks(validate=False) else ""
-            required = {"type", "format_version", "id", "task", "sequence", "status", "role", "title", "commit_policy", "commit_type", "created", "updated", "commit_base_head"}
+            expected_task_file = (
+                self.load_tasks(validate=False).get(task_id).path.name
+                if task_id in self.load_tasks(validate=False)
+                else ""
+            )
+            required = {
+                "type",
+                "format_version",
+                "id",
+                "task",
+                "sequence",
+                "status",
+                "role",
+                "title",
+                "commit_policy",
+                "commit_type",
+                "created",
+                "updated",
+                "commit_base_head",
+            }
             missing = sorted(required - set(fm))
             if missing:
-                fail("CORRUPT_MANAGED_FILE", f"step {path.name} is missing frontmatter field(s): {', '.join(missing)}", "Restore the canonical step file before continuing.")
-            if fm.get("type") != "step" or fm.get("format_version") != FORMAT_VERSION or (stored_task != task_id and Path(stored_task).name != expected_task_file):
-                fail("CORRUPT_MANAGED_FILE", f"invalid step file {path.name}", "Restore the canonical step file before continuing.")
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"step {path.name} is missing frontmatter field(s): {', '.join(missing)}",
+                    "Restore the canonical step file before continuing.",
+                )
+            if (
+                fm.get("type") != "step"
+                or fm.get("format_version") != FORMAT_VERSION
+                or (stored_task != task_id and Path(stored_task).name != expected_task_file)
+            ):
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"invalid step file {path.name}",
+                    "Restore the canonical step file before continuing.",
+                )
             try:
                 require_timestamp(fm.get("created", ""), "step.created")
                 require_timestamp(fm.get("updated", ""), "step.updated")
             except ValueError as exc:
-                fail("CORRUPT_MANAGED_FILE", str(exc), "Restore the canonical step timestamps before continuing.")
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    str(exc),
+                    "Restore the canonical step timestamps before continuing.",
+                )
             sid = fm.get("id", "")
             if not STEP_ID_RE.fullmatch(sid):
-                fail("CORRUPT_MANAGED_FILE", f"invalid step ID {sid}", "Restore the canonical step ID before continuing.")
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"invalid step ID {sid}",
+                    "Restore the canonical step ID before continuing.",
+                )
             try:
                 sequence = int(fm.get("sequence", ""))
             except ValueError as exc:
-                fail("CORRUPT_MANAGED_FILE", f"step {path.name} has a non-integer sequence", "Restore the canonical step sequence before continuing.")
-            result.append(Step(
-                id=sid, task=task_id, sequence=sequence, status=fm.get("status", ""),
-                role=fm.get("role", ""), title=fm.get("title", ""), action=section_value(body, "ACTION"),
-                accept=section_list(body, "ACCEPT"), load=section_list(body, "LOAD"), may_edit=section_list(body, "MAY_EDIT"),
-                validation=section_list(body, "VALIDATION"), commit_policy=fm.get("commit_policy", "required"),
-                commit_type=fm.get("commit_type", "chore"), created=fm.get("created", ""), updated=fm.get("updated", ""),
-                result=section_value(body, "RESULT") or "Pending", commit_id=section_value(body, "COMMIT_ID"),
-                commit_message=section_value(body, "COMMIT_MESSAGE"), validation_event=section_value(body, "VALIDATION_EVENT"),
-                commit_base_head=fm.get("commit_base_head", ""),
-            ))
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"step {path.name} has a non-integer sequence",
+                    "Restore the canonical step sequence before continuing.",
+                )
+            result.append(
+                Step(
+                    id=sid,
+                    task=task_id,
+                    sequence=sequence,
+                    status=fm.get("status", ""),
+                    role=fm.get("role", ""),
+                    title=fm.get("title", ""),
+                    action=section_value(body, "ACTION"),
+                    accept=section_list(body, "ACCEPT"),
+                    load=section_list(body, "LOAD"),
+                    may_edit=section_list(body, "MAY_EDIT"),
+                    validation=section_list(body, "VALIDATION"),
+                    commit_policy=fm.get("commit_policy", "required"),
+                    commit_type=fm.get("commit_type", "chore"),
+                    created=fm.get("created", ""),
+                    updated=fm.get("updated", ""),
+                    result=section_value(body, "RESULT") or "Pending",
+                    commit_id=section_value(body, "COMMIT_ID"),
+                    commit_message=section_value(body, "COMMIT_MESSAGE"),
+                    validation_event=section_value(body, "VALIDATION_EVENT"),
+                    commit_base_head=fm.get("commit_base_head", ""),
+                )
+            )
         result.sort(key=lambda s: s.sequence)
         self.validate_steps(task_id, result)
         return result
@@ -644,51 +826,119 @@ class Store:
         expected_sequence = 1
         for step in steps:
             if step.id in seen_ids or step.sequence in seen_sequences:
-                fail("CORRUPT_STATE", f"duplicate step identity in {task_id}", "Repair duplicate managed step records before continuing.")
-            seen_ids.add(step.id); seen_sequences.add(step.sequence)
+                fail(
+                    "CORRUPT_STATE",
+                    f"duplicate step identity in {task_id}",
+                    "Repair duplicate managed step records before continuing.",
+                )
+            seen_ids.add(step.id)
+            seen_sequences.add(step.sequence)
             if step.sequence != expected_sequence:
-                fail("CORRUPT_STATE", f"step sequence is not contiguous for {task_id}: expected {expected_sequence}, found {step.sequence}", "Restore canonical step ordering before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"step sequence is not contiguous for {task_id}: expected {expected_sequence}, found {step.sequence}",
+                    "Restore canonical step ordering before continuing.",
+                )
             expected_sequence += 1
             if step.status not in STEP_STATES:
-                fail("CORRUPT_STATE", f"invalid step state {step.status} for {step.id}", "Repair the managed step state before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"invalid step state {step.status} for {step.id}",
+                    "Repair the managed step state before continuing.",
+                )
             if step.role != PHASE_ROLE["implementation"]:
-                fail("CORRUPT_STATE", f"step {step.id} has invalid role {step.role}", "Restore the canonical developer role for implementation steps.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"step {step.id} has invalid role {step.role}",
+                    "Restore the canonical developer role for implementation steps.",
+                )
             if step.commit_policy not in {"required", "optional", "disabled"}:
-                fail("CORRUPT_STATE", f"step {step.id} has invalid commit policy", "Restore a supported commit policy before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"step {step.id} has invalid commit policy",
+                    "Restore a supported commit policy before continuing.",
+                )
             if step.commit_type not in {"chore", "fix", "refactor", "test", "docs"}:
-                fail("CORRUPT_STATE", f"step {step.id} has invalid commit type", "Restore a supported commit type before continuing.")
-            if not step.title.strip() or not step.action.strip() or not step.accept or not step.validation:
-                fail("CORRUPT_STATE", f"step {step.id} is missing canonical action, acceptance, or validation content", "Restore the complete canonical step record before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"step {step.id} has invalid commit type",
+                    "Restore a supported commit type before continuing.",
+                )
+            if (
+                not step.title.strip()
+                or not step.action.strip()
+                or not step.accept
+                or not step.validation
+            ):
+                fail(
+                    "CORRUPT_STATE",
+                    f"step {step.id} is missing canonical action, acceptance, or validation content",
+                    "Restore the complete canonical step record before continuing.",
+                )
             if step.commit_policy == "required" and step.status == "done" and not step.commit_id:
-                fail("CORRUPT_STATE", f"required-commit step {step.id} is done without a recorded commit", "Restore the missing manager-created commit evidence before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"required-commit step {step.id} is done without a recorded commit",
+                    "Restore the missing manager-created commit evidence before continuing.",
+                )
             if step.status in {"ready", "active", "validating", "committing"}:
                 active_states += 1
             if step.status == "queued" and step.sequence == 1:
-                fail("CORRUPT_STATE", f"first step {step.id} cannot remain queued", "Restore the first step to active or another valid executable state.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"first step {step.id} cannot remain queued",
+                    "Restore the first step to active or another valid executable state.",
+                )
         if active_states > 1:
-            fail("CORRUPT_STATE", f"more than one executable step is active for {task_id}", "Repair the managed step states before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                f"more than one executable step is active for {task_id}",
+                "Repair the managed step states before continuing.",
+            )
         # Later steps remain queued until all predecessors are terminal. Only a
         # non-queued step may advance when every predecessor is done.
         for index, step in enumerate(steps):
             if step.status == "queued":
                 continue
             if any(prev.status != "done" for prev in steps[:index]):
-                fail("CORRUPT_STATE", f"step {step.id} advanced before an earlier step completed", "Restore sequential step ordering before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"step {step.id} advanced before an earlier step completed",
+                    "Restore sequential step ordering before continuing.",
+                )
 
     def save_step(self, step: Step) -> None:
         fm = {
-            "type": "step", "format_version": FORMAT_VERSION, "id": step.id,
-            "task": f"../tasks/{self.load_tasks(validate=False)[step.task].path.name}" if step.task in self.load_tasks(validate=False) else step.task,
-            "sequence": step.sequence, "status": step.status, "role": step.role, "title": step.title,
-            "commit_policy": step.commit_policy, "commit_type": step.commit_type, "commit_base_head": step.commit_base_head,
-            "created": step.created, "updated": step.updated,
+            "type": "step",
+            "format_version": FORMAT_VERSION,
+            "id": step.id,
+            "task": f"../tasks/{self.load_tasks(validate=False)[step.task].path.name}"
+            if step.task in self.load_tasks(validate=False)
+            else step.task,
+            "sequence": step.sequence,
+            "status": step.status,
+            "role": step.role,
+            "title": step.title,
+            "commit_policy": step.commit_policy,
+            "commit_type": step.commit_type,
+            "commit_base_head": step.commit_base_head,
+            "created": step.created,
+            "updated": step.updated,
         }
         body = (
             f"# {step.title}\n\nACTION:\n{step.action}\n\n"
-            + "ACCEPT:\n" + "\n".join(f"- {x}" for x in step.accept) + "\n\n"
-            + "LOAD:\n" + "\n".join(f"- {x}" for x in step.load) + "\n\n"
-            + "MAY_EDIT:\n" + "\n".join(f"- {x}" for x in step.may_edit) + "\n\n"
-            + "VALIDATION:\n" + "\n".join(f"- {x}" for x in step.validation) + "\n\n"
+            + "ACCEPT:\n"
+            + "\n".join(f"- {x}" for x in step.accept)
+            + "\n\n"
+            + "LOAD:\n"
+            + "\n".join(f"- {x}" for x in step.load)
+            + "\n\n"
+            + "MAY_EDIT:\n"
+            + "\n".join(f"- {x}" for x in step.may_edit)
+            + "\n\n"
+            + "VALIDATION:\n"
+            + "\n".join(f"- {x}" for x in step.validation)
+            + "\n\n"
             + f"RESULT:\n{step.result}\n\nVALIDATION_EVENT:\n{step.validation_event}\n\n"
             + f"COMMIT_ID:\n{step.commit_id}\n\nCOMMIT_MESSAGE:\n{step.commit_message}\n"
         )
@@ -718,7 +968,9 @@ class Store:
         numbers: list[int] = []
         patterns = (
             self.steps_dir.glob(f"{task_id}-STEP-*.md"),
-            (self.archive_dir / task_id).rglob(f"{task_id}-STEP-*.md") if (self.archive_dir / task_id).exists() else (),
+            (self.archive_dir / task_id).rglob(f"{task_id}-STEP-*.md")
+            if (self.archive_dir / task_id).exists()
+            else (),
         )
         for paths in patterns:
             for path in paths:
@@ -728,14 +980,22 @@ class Store:
         return max(numbers, default=0) + 1
 
     def next_record_number(self, task_id: str, prefix: str) -> int:
-        path = self.knowledge_dir / f"{task_id}-analysis.md" if prefix == "FINDING" else self.knowledge_dir / f"{task_id}-decisions.md" if prefix == "DEC" else self.evidence_dir / f"{task_id}-evidence.md"
+        path = (
+            self.knowledge_dir / f"{task_id}-analysis.md"
+            if prefix == "FINDING"
+            else self.knowledge_dir / f"{task_id}-decisions.md"
+            if prefix == "DEC"
+            else self.evidence_dir / f"{task_id}-evidence.md"
+        )
         if not path.exists():
             return 1
         text = path.read_text(encoding="utf-8")
         nums = [int(x) for x in re.findall(rf"## {prefix}-(\d{{4}})", text)]
         return max(nums, default=0) + 1
 
-    def allocate_task_id(self, tasks: dict[str, Task], parent: str | None, new_story: bool = False) -> str:
+    def allocate_task_id(
+        self, tasks: dict[str, Task], parent: str | None, new_story: bool = False
+    ) -> str:
         if parent:
             story, root, subs = parse_task_id(parent)
             used = [
@@ -758,20 +1018,16 @@ class Store:
             story = max(stories) + 1
         else:
             active_stories = {
-                parse_task_id(t.id)[0]
-                for t in tasks.values()
-                if t.status in STORY_ACTIVE_STATES
+                parse_task_id(t.id)[0] for t in tasks.values() if t.status in STORY_ACTIVE_STATES
             }
             if active_stories:
                 # A currently active story remains the default allocation scope
                 # for normal root-task additions.
                 story = min(active_stories)
             else:
-                open_stories = sorted({
-                    parse_task_id(t.id)[0]
-                    for t in tasks.values()
-                    if t.status != "done"
-                })
+                open_stories = sorted(
+                    {parse_task_id(t.id)[0] for t in tasks.values() if t.status != "done"}
+                )
                 story = open_stories[0] if open_stories else max(stories) + 1
 
         roots = [
@@ -813,7 +1069,11 @@ class Store:
 
     def rebuild_index(self) -> None:
         tasks = self.load_tasks(validate=False)
-        lines = [frontmatter({"type": "index", "format_version": FORMAT_VERSION, "updated": now()}), "# Manager Index", ""]
+        lines = [
+            frontmatter({"type": "index", "format_version": FORMAT_VERSION, "updated": now()}),
+            "# Manager Index",
+            "",
+        ]
         for t in sorted(tasks.values(), key=lambda x: x.order_key):
             lines.append(f"- [{t.id}]({Path('tasks') / t.path.name}) — {t.status} — {t.title}")
         atomic_write(self.meta / "index.md", "\n".join(lines).rstrip() + "\n")
@@ -826,7 +1086,11 @@ class Store:
         self.validate_integrity()
         version = self.meta / "VERSION"
         if version.exists() and version.read_text(encoding="utf-8").strip() != FORMAT_VERSION:
-            fail("UNSUPPORTED_FORMAT", "unsupported .manager VERSION", "Use a compatible manager or migrate the managed workspace.")
+            fail(
+                "UNSUPPORTED_FORMAT",
+                "unsupported .manager VERSION",
+                "Use a compatible manager or migrate the managed workspace.",
+            )
         self.validate_workspace()
         tasks = self.load_tasks(validate=False)
         self.validate_tasks(tasks)
@@ -841,47 +1105,116 @@ class Store:
     def validate_workspace(self) -> None:
         path = self.meta / "workspace.md"
         if not path.exists():
-            fail("CORRUPT_STATE", "workspace.md is missing", "Restore the canonical workspace record before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                "workspace.md is missing",
+                "Restore the canonical workspace record before continuing.",
+            )
         try:
             fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
-            fail("CORRUPT_MANAGED_FILE", f"cannot parse workspace.md: {exc}", "Restore the canonical workspace record before continuing.")
-        required = {"type", "format_version", "workspace_id", "created", "updated", "active_task", "commit_mode"}
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                f"cannot parse workspace.md: {exc}",
+                "Restore the canonical workspace record before continuing.",
+            )
+        required = {
+            "type",
+            "format_version",
+            "workspace_id",
+            "created",
+            "updated",
+            "active_task",
+            "commit_mode",
+        }
         missing = sorted(required - set(fm))
         if missing:
-            fail("CORRUPT_MANAGED_FILE", "workspace.md is missing frontmatter field(s): " + ", ".join(missing), "Restore the canonical workspace record before continuing.")
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                "workspace.md is missing frontmatter field(s): " + ", ".join(missing),
+                "Restore the canonical workspace record before continuing.",
+            )
         if fm.get("type") != "workspace" or fm.get("format_version") != FORMAT_VERSION:
-            fail("CORRUPT_MANAGED_FILE", "workspace.md has an invalid type or format_version", "Restore the canonical workspace record before continuing.")
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                "workspace.md has an invalid type or format_version",
+                "Restore the canonical workspace record before continuing.",
+            )
         if fm.get("workspace_id") != self.workspace_id():
-            fail("CORRUPT_MANAGED_FILE", "workspace_id does not match the repository root", "Restore the canonical workspace record for this repository before continuing.")
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                "workspace_id does not match the repository root",
+                "Restore the canonical workspace record for this repository before continuing.",
+            )
         try:
             require_timestamp(fm.get("created", ""), "workspace.created")
             require_timestamp(fm.get("updated", ""), "workspace.updated")
         except ValueError as exc:
-            fail("CORRUPT_MANAGED_FILE", str(exc), "Restore workspace.md with canonical ISO-8601 timestamps including an explicit offset.")
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                str(exc),
+                "Restore workspace.md with canonical ISO-8601 timestamps including an explicit offset.",
+            )
         if fm.get("commit_mode") not in {"enabled", "disabled"}:
-            fail("CORRUPT_MANAGED_FILE", "workspace.md has an invalid commit_mode", "Restore commit_mode to enabled or disabled before continuing.")
+            fail(
+                "CORRUPT_MANAGED_FILE",
+                "workspace.md has an invalid commit_mode",
+                "Restore commit_mode to enabled or disabled before continuing.",
+            )
 
-    def validate_execution_consistency(self, tasks: dict[str, Task], steps_by_task: dict[str, list[Step]]) -> None:
+    def validate_execution_consistency(
+        self, tasks: dict[str, Task], steps_by_task: dict[str, list[Step]]
+    ) -> None:
         for task in tasks.values():
             steps = steps_by_task.get(task.id, [])
             if task.status != "active":
-                executable_states = {"ready", "active", "implemented", "validating", "validated", "committing"}
-                if steps and task.phase in {None, "complete"} and any(s.status in executable_states for s in steps):
-                    fail("CORRUPT_STATE", f"inactive task {task.id} has executable unfinished steps", "Restore the task and step lifecycle to a legal state before continuing.")
+                executable_states = {
+                    "ready",
+                    "active",
+                    "implemented",
+                    "validating",
+                    "validated",
+                    "committing",
+                }
+                if (
+                    steps
+                    and task.phase in {None, "complete"}
+                    and any(s.status in executable_states for s in steps)
+                ):
+                    fail(
+                        "CORRUPT_STATE",
+                        f"inactive task {task.id} has executable unfinished steps",
+                        "Restore the task and step lifecycle to a legal state before continuing.",
+                    )
                 continue
             if task.phase == "analysis":
                 if steps:
-                    fail("CORRUPT_STATE", f"analysis task {task.id} already has implementation steps", "Restore the task to a phase consistent with its plan before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"analysis task {task.id} already has implementation steps",
+                        "Restore the task to a phase consistent with its plan before continuing.",
+                    )
             elif task.phase == "planning":
                 if steps and any(s.status not in {"done", "failed", "blocked"} for s in steps):
-                    fail("CORRUPT_STATE", f"planning task {task.id} has unfinished implementation steps", "Restore the task to planning with all prior steps terminal before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"planning task {task.id} has unfinished implementation steps",
+                        "Restore the task to planning with all prior steps terminal before continuing.",
+                    )
             elif task.phase in {"implementation", "step_validation", "step_commit"}:
                 if not task.current_step:
-                    fail("CORRUPT_STATE", f"{task.phase} task {task.id} has no current_step", "Restore the current step reference before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"{task.phase} task {task.id} has no current_step",
+                        "Restore the current step reference before continuing.",
+                    )
                 current = [s for s in steps if s.id == task.current_step]
                 if len(current) != 1:
-                    fail("CORRUPT_STATE", f"{task.id} references missing or duplicate current step {task.current_step}", "Restore the canonical current step reference before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"{task.id} references missing or duplicate current step {task.current_step}",
+                        "Restore the canonical current step reference before continuing.",
+                    )
                 step = current[0]
                 expected = {
                     "implementation": {"active", "ready"},
@@ -889,22 +1222,50 @@ class Store:
                     "step_commit": {"validated", "committing"},
                 }[task.phase]
                 if step.status not in expected:
-                    fail("CORRUPT_STATE", f"{task.id} phase {task.phase} disagrees with step {step.id} state {step.status}", "Restore the task phase and current step to a legal execution state before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"{task.id} phase {task.phase} disagrees with step {step.id} state {step.status}",
+                        "Restore the task phase and current step to a legal execution state before continuing.",
+                    )
             elif task.phase == "final_validation":
                 if task.current_step:
-                    fail("CORRUPT_STATE", f"final-validation task {task.id} still has current_step {task.current_step}", "Clear current_step before final validation can begin.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"final-validation task {task.id} still has current_step {task.current_step}",
+                        "Clear current_step before final validation can begin.",
+                    )
                 if steps and not all(s.status == "done" for s in steps):
-                    fail("CORRUPT_STATE", f"final-validation task {task.id} has incomplete implementation steps", "Complete every implementation step before entering final validation.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"final-validation task {task.id} has incomplete implementation steps",
+                        "Complete every implementation step before entering final validation.",
+                    )
             elif task.phase == "final_commit":
                 if task.current_step:
-                    fail("CORRUPT_STATE", f"final-commit task {task.id} still has current_step {task.current_step}", "Clear current_step before final commit can begin.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"final-commit task {task.id} still has current_step {task.current_step}",
+                        "Clear current_step before final commit can begin.",
+                    )
                 if steps and not all(s.status == "done" for s in steps):
-                    fail("CORRUPT_STATE", f"final-commit task {task.id} has incomplete implementation steps", "Complete every implementation step before entering final commit.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"final-commit task {task.id} has incomplete implementation steps",
+                        "Complete every implementation step before entering final commit.",
+                    )
                 evidence = task.evidence
                 if not evidence or not (task.path.parent / evidence).resolve().exists():
-                    fail("CORRUPT_STATE", f"final-commit task {task.id} has no evidence record", "Restore the task evidence before continuing.")
+                    fail(
+                        "CORRUPT_STATE",
+                        f"final-commit task {task.id} has no evidence record",
+                        "Restore the task evidence before continuing.",
+                    )
             elif task.phase not in PHASE_ROLE:
-                fail("CORRUPT_STATE", f"task {task.id} has unsupported phase {task.phase}", "Restore a supported execution phase before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"task {task.id} has unsupported phase {task.phase}",
+                    "Restore a supported execution phase before continuing.",
+                )
 
     def validate_supporting_records(self, tasks: dict[str, Task]) -> None:
         """Validate lazy analysis, decision, and evidence projections as authoritative records.
@@ -916,100 +1277,240 @@ class Store:
         for task_id, task in tasks.items():
             for kind, path, expected_id in (
                 ("analysis", self.knowledge_dir / f"{task_id}-analysis.md", f"{task_id}-ANALYSIS"),
-                ("decisions", self.knowledge_dir / f"{task_id}-decisions.md", f"{task_id}-DECISIONS"),
+                (
+                    "decisions",
+                    self.knowledge_dir / f"{task_id}-decisions.md",
+                    f"{task_id}-DECISIONS",
+                ),
                 ("evidence", self.evidence_dir / f"{task_id}-evidence.md", f"{task_id}-EVIDENCE"),
             ):
                 if not path.exists():
                     continue
                 if path.stat().st_size == 0:
-                    fail("CORRUPT_MANAGED_FILE", f"{path.name} is empty", "Restore the managed record or remove it through an administrative repair procedure.")
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"{path.name} is empty",
+                        "Restore the managed record or remove it through an administrative repair procedure.",
+                    )
                 try:
                     fm, body = parse_frontmatter(path.read_text(encoding="utf-8"))
                 except (OSError, ValueError) as exc:
-                    fail("CORRUPT_MANAGED_FILE", f"{path.name} has invalid frontmatter: {exc}", "Restore the managed supporting record from a trusted manager snapshot.")
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"{path.name} has invalid frontmatter: {exc}",
+                        "Restore the managed supporting record from a trusted manager snapshot.",
+                    )
                 required = {"type", "format_version", "id", "task_id", "created", "updated"}
                 if set(fm) != required:
-                    fail("CORRUPT_MANAGED_FILE", f"{path.name} has an invalid frontmatter schema", "Restore the canonical supporting-record frontmatter before continuing.")
-                if fm["type"] != kind or fm["format_version"] != FORMAT_VERSION or fm["id"] != expected_id or fm["task_id"] != task_id:
-                    fail("CORRUPT_MANAGED_FILE", f"{path.name} has inconsistent identity metadata", "Restore the canonical type, format version, record ID, and task ID.")
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"{path.name} has an invalid frontmatter schema",
+                        "Restore the canonical supporting-record frontmatter before continuing.",
+                    )
+                if (
+                    fm["type"] != kind
+                    or fm["format_version"] != FORMAT_VERSION
+                    or fm["id"] != expected_id
+                    or fm["task_id"] != task_id
+                ):
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"{path.name} has inconsistent identity metadata",
+                        "Restore the canonical type, format version, record ID, and task ID.",
+                    )
                 require_timestamp(fm["created"], f"{path.name}.created")
                 require_timestamp(fm["updated"], f"{path.name}.updated")
                 if not body.strip():
-                    fail("CORRUPT_MANAGED_FILE", f"{path.name} contains no record content", "Restore the supporting record content before continuing.")
+                    fail(
+                        "CORRUPT_MANAGED_FILE",
+                        f"{path.name} contains no record content",
+                        "Restore the supporting record content before continuing.",
+                    )
 
                 if kind == "analysis":
                     ids = re.findall(r"^## (FINDING-\d{4})$", body, flags=re.MULTILINE)
                     if len(ids) != len(set(ids)):
-                        fail("CORRUPT_MANAGED_FILE", f"{path.name} contains duplicate finding IDs", "Restore unique FINDING-#### record IDs before continuing.")
+                        fail(
+                            "CORRUPT_MANAGED_FILE",
+                            f"{path.name} contains duplicate finding IDs",
+                            "Restore unique FINDING-#### record IDs before continuing.",
+                        )
                     for rid in ids:
                         chunk = body.split(f"## {rid}\n", 1)[1].split("\n## ", 1)[0]
                         for heading in ("QUESTION", "FINDING", "EVIDENCE", "IMPACT", "CONFIDENCE"):
                             if not section_value(chunk, heading):
-                                fail("CORRUPT_MANAGED_FILE", f"{path.name} record {rid} is missing {heading}", "Restore the complete canonical finding record before continuing.")
+                                fail(
+                                    "CORRUPT_MANAGED_FILE",
+                                    f"{path.name} record {rid} is missing {heading}",
+                                    "Restore the complete canonical finding record before continuing.",
+                                )
                 elif kind == "decisions":
                     ids = re.findall(r"^## (DEC-\d{4})$", body, flags=re.MULTILINE)
                     if len(ids) != len(set(ids)):
-                        fail("CORRUPT_MANAGED_FILE", f"{path.name} contains duplicate decision IDs", "Restore unique DEC-#### record IDs before continuing.")
+                        fail(
+                            "CORRUPT_MANAGED_FILE",
+                            f"{path.name} contains duplicate decision IDs",
+                            "Restore unique DEC-#### record IDs before continuing.",
+                        )
                     for rid in ids:
                         chunk = body.split(f"## {rid}\n", 1)[1].split("\n## ", 1)[0]
                         status_match = re.search(r"^STATUS:\n([^\n]+)", chunk, flags=re.MULTILINE)
-                        if not status_match or status_match.group(1).strip() not in {"proposed", "accepted", "rejected", "superseded"}:
-                            fail("CORRUPT_MANAGED_FILE", f"{path.name} decision {rid} has an invalid status", "Restore the decision lifecycle to proposed, accepted, rejected, or superseded.")
+                        if not status_match or status_match.group(1).strip() not in {
+                            "proposed",
+                            "accepted",
+                            "rejected",
+                            "superseded",
+                        }:
+                            fail(
+                                "CORRUPT_MANAGED_FILE",
+                                f"{path.name} decision {rid} has an invalid status",
+                                "Restore the decision lifecycle to proposed, accepted, rejected, or superseded.",
+                            )
                         for heading in ("DECISION", "RATIONALE"):
                             if not section_value(chunk, heading):
-                                fail("CORRUPT_MANAGED_FILE", f"{path.name} decision {rid} is missing {heading}", "Restore the complete canonical decision record before continuing.")
+                                fail(
+                                    "CORRUPT_MANAGED_FILE",
+                                    f"{path.name} decision {rid} is missing {heading}",
+                                    "Restore the complete canonical decision record before continuing.",
+                                )
                         for heading in ("ALTERNATIVES", "CONSEQUENCES", "EVIDENCE", "SUPERSEDES"):
-                            if re.search(r"^" + re.escape(heading) + r":", chunk, flags=re.MULTILINE) is None:
-                                fail("CORRUPT_MANAGED_FILE", f"{path.name} decision {rid} is missing {heading}", "Restore the complete canonical decision record before continuing.")
-                    resolutions = re.findall(r"^## DECISION-RESOLUTION-(DEC-\d{4})$", body, flags=re.MULTILINE)
+                            if (
+                                re.search(
+                                    r"^" + re.escape(heading) + r":", chunk, flags=re.MULTILINE
+                                )
+                                is None
+                            ):
+                                fail(
+                                    "CORRUPT_MANAGED_FILE",
+                                    f"{path.name} decision {rid} is missing {heading}",
+                                    "Restore the complete canonical decision record before continuing.",
+                                )
+                    resolutions = re.findall(
+                        r"^## DECISION-RESOLUTION-(DEC-\d{4})$", body, flags=re.MULTILINE
+                    )
                     if len(resolutions) != len(set(resolutions)):
-                        fail("CORRUPT_MANAGED_FILE", f"{path.name} contains duplicate decision resolution IDs", "Restore unique decision resolution records before continuing.")
+                        fail(
+                            "CORRUPT_MANAGED_FILE",
+                            f"{path.name} contains duplicate decision resolution IDs",
+                            "Restore unique decision resolution records before continuing.",
+                        )
                     for rid in resolutions:
                         if rid not in ids:
-                            fail("CORRUPT_MANAGED_FILE", f"{path.name} resolves unknown decision {rid}", "Restore the referenced decision before continuing.")
-                        matches = re.findall(r"## DECISION-RESOLUTION-" + re.escape(rid) + r"\n\nDECISION_ID:\n" + re.escape(rid) + r"\n\nSTATUS:\n([^\n]+)", body)
+                            fail(
+                                "CORRUPT_MANAGED_FILE",
+                                f"{path.name} resolves unknown decision {rid}",
+                                "Restore the referenced decision before continuing.",
+                            )
+                        matches = re.findall(
+                            r"## DECISION-RESOLUTION-"
+                            + re.escape(rid)
+                            + r"\n\nDECISION_ID:\n"
+                            + re.escape(rid)
+                            + r"\n\nSTATUS:\n([^\n]+)",
+                            body,
+                        )
                         if not matches or matches[-1] not in {"accepted", "rejected", "superseded"}:
-                            fail("CORRUPT_MANAGED_FILE", f"{path.name} has an invalid resolution for {rid}", "Restore the decision resolution lifecycle before continuing.")
+                            fail(
+                                "CORRUPT_MANAGED_FILE",
+                                f"{path.name} has an invalid resolution for {rid}",
+                                "Restore the decision resolution lifecycle before continuing.",
+                            )
                 else:
                     ids = re.findall(r"^## (EVT-\d{4})$", body, flags=re.MULTILINE)
                     if len(ids) != len(set(ids)):
-                        fail("CORRUPT_MANAGED_FILE", f"{path.name} contains duplicate evidence IDs", "Restore unique EVT-#### record IDs before continuing.")
+                        fail(
+                            "CORRUPT_MANAGED_FILE",
+                            f"{path.name} contains duplicate evidence IDs",
+                            "Restore unique EVT-#### record IDs before continuing.",
+                        )
                     for rid in ids:
                         chunk = body.split(f"## {rid}\n", 1)[1].split("\n## ", 1)[0]
-                        if not re.search(r"^TYPE:\n\S+", chunk, flags=re.MULTILINE) or not re.search(r"^RECORDED_AT:\n\S+", chunk, flags=re.MULTILINE):
-                            fail("CORRUPT_MANAGED_FILE", f"{path.name} evidence {rid} is missing canonical metadata", "Restore TYPE and RECORDED_AT for the evidence record before continuing.")
+                        if not re.search(
+                            r"^TYPE:\n\S+", chunk, flags=re.MULTILINE
+                        ) or not re.search(r"^RECORDED_AT:\n\S+", chunk, flags=re.MULTILINE):
+                            fail(
+                                "CORRUPT_MANAGED_FILE",
+                                f"{path.name} evidence {rid} is missing canonical metadata",
+                                "Restore TYPE and RECORDED_AT for the evidence record before continuing.",
+                            )
                         recorded = re.search(r"^RECORDED_AT:\n([^\n]+)", chunk, flags=re.MULTILINE)
                         if recorded:
-                            require_timestamp(recorded.group(1).strip(), f"{path.name} {rid}.RECORDED_AT")
+                            require_timestamp(
+                                recorded.group(1).strip(), f"{path.name} {rid}.RECORDED_AT"
+                            )
 
     def validate_submission_ledger(self) -> None:
         if not self.submissions_path.exists():
-            fail("CORRUPT_STATE", "submission ledger is missing", "Restore submissions.json from a trusted manager snapshot before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                "submission ledger is missing",
+                "Restore submissions.json from a trusted manager snapshot before continuing.",
+            )
         try:
             raw = json.loads(self.submissions_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            fail("CORRUPT_STATE", f"submission ledger is malformed: {exc}", "Restore submissions.json from a trusted manager snapshot before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                f"submission ledger is malformed: {exc}",
+                "Restore submissions.json from a trusted manager snapshot before continuing.",
+            )
         if not isinstance(raw, dict):
-            fail("CORRUPT_STATE", "submission ledger must contain an object", "Restore submissions.json with the canonical object structure.")
+            fail(
+                "CORRUPT_STATE",
+                "submission ledger must contain an object",
+                "Restore submissions.json with the canonical object structure.",
+            )
         for token, record in raw.items():
             if not isinstance(token, str) or not token:
-                fail("CORRUPT_STATE", "submission ledger contains an invalid token", "Restore submissions.json with non-empty string tokens.")
+                fail(
+                    "CORRUPT_STATE",
+                    "submission ledger contains an invalid token",
+                    "Restore submissions.json with non-empty string tokens.",
+                )
             if not isinstance(record, dict) or set(record) != {"token", "fingerprint", "response"}:
-                fail("CORRUPT_STATE", f"submission ledger entry {token!r} has an invalid schema", "Restore the malformed submission entry before continuing.")
-            if record.get("token") != token or not isinstance(record.get("fingerprint"), str) or not isinstance(record.get("response"), str):
-                fail("CORRUPT_STATE", f"submission ledger entry {token!r} has invalid field types", "Restore the malformed submission entry before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"submission ledger entry {token!r} has an invalid schema",
+                    "Restore the malformed submission entry before continuing.",
+                )
+            if (
+                record.get("token") != token
+                or not isinstance(record.get("fingerprint"), str)
+                or not isinstance(record.get("response"), str)
+            ):
+                fail(
+                    "CORRUPT_STATE",
+                    f"submission ledger entry {token!r} has invalid field types",
+                    "Restore the malformed submission entry before continuing.",
+                )
             if not re.fullmatch(r"[0-9a-f]{64}", record["fingerprint"]):
-                fail("CORRUPT_STATE", f"submission ledger entry {token!r} has an invalid fingerprint", "Restore the canonical submission fingerprint before continuing.")
+                fail(
+                    "CORRUPT_STATE",
+                    f"submission ledger entry {token!r} has an invalid fingerprint",
+                    "Restore the canonical submission fingerprint before continuing.",
+                )
 
     def validate_references(self, tasks: dict[str, Task]) -> None:
         for t in tasks.values():
-            for field_name, rel in (("analysis", t.analysis), ("decisions", t.decisions), ("evidence", t.evidence)):
+            for field_name, rel in (
+                ("analysis", t.analysis),
+                ("decisions", t.decisions),
+                ("evidence", t.evidence),
+            ):
                 if rel:
                     target = (t.path.parent / rel).resolve()
                     if not target.is_relative_to(self.meta.resolve()):
-                        fail("CORRUPT_STATE", f"{t.id} {field_name} link escapes .manager", "Repair the managed link before continuing.")
+                        fail(
+                            "CORRUPT_STATE",
+                            f"{t.id} {field_name} link escapes .manager",
+                            "Repair the managed link before continuing.",
+                        )
                     if not target.exists():
-                        fail("CORRUPT_STATE", f"{t.id} references missing {field_name} file", "Restore the referenced managed record or repair the link.")
+                        fail(
+                            "CORRUPT_STATE",
+                            f"{t.id} references missing {field_name} file",
+                            "Restore the referenced managed record or repair the link.",
+                        )
 
     def refresh_integrity(self) -> None:
         records = {}
@@ -1022,7 +1523,9 @@ class Store:
             if integrity_ignored(rel, path.name):
                 continue
             records[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
-        atomic_write(self.meta / "integrity.json", json.dumps(records, indent=2, sort_keys=True) + "\n")
+        atomic_write(
+            self.meta / "integrity.json", json.dumps(records, indent=2, sort_keys=True) + "\n"
+        )
         protect(self.meta / "integrity.json")
 
     def can_repair_integrity_after_reconcile(self, what: str) -> bool:
@@ -1052,7 +1555,11 @@ class Store:
         try:
             expected = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            fail("CORRUPT_STATE", f"integrity manifest is malformed: {exc.msg}", "Restore integrity.json from a trusted manager snapshot before continuing.")
+            fail(
+                "CORRUPT_STATE",
+                f"integrity manifest is malformed: {exc.msg}",
+                "Restore integrity.json from a trusted manager snapshot before continuing.",
+            )
         actual = {}
         for p in sorted(self.meta.rglob("*")):
             if not p.is_file():
@@ -1066,10 +1573,17 @@ class Store:
             added = sorted(set(actual) - set(expected))
             changed = sorted(k for k in set(expected) & set(actual) if expected[k] != actual[k])
             detail = []
-            if missing: detail.append("missing=" + ",".join(missing))
-            if added: detail.append("added=" + ",".join(added))
-            if changed: detail.append("changed=" + ",".join(changed))
-            fail("MANAGED_FILE_TAMPERED", "managed-file integrity check failed: " + "; ".join(detail), "Restore the affected .manager files from the last trusted manager snapshot, then rerun the command.")
+            if missing:
+                detail.append("missing=" + ",".join(missing))
+            if added:
+                detail.append("added=" + ",".join(added))
+            if changed:
+                detail.append("changed=" + ",".join(changed))
+            fail(
+                "MANAGED_FILE_TAMPERED",
+                "managed-file integrity check failed: " + "; ".join(detail),
+                "Restore the affected .manager files from the last trusted manager snapshot, then rerun the command.",
+            )
 
     def load_submissions(self) -> dict[str, Submission]:
         self.validate_submission_ledger()
@@ -1078,20 +1592,31 @@ class Store:
 
     def remember_submission(self, token: str, payload: dict[str, Any], response: str) -> str:
         ledger = self.load_submissions()
-        fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        fingerprint = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
         if token in ledger:
             if ledger[token].fingerprint != fingerprint:
-                fail("TOKEN_REUSE", "submission token was already used with different content", "Generate a new submission token and resubmit the current result.")
+                fail(
+                    "TOKEN_REUSE",
+                    "submission token was already used with different content",
+                    "Generate a new submission token and resubmit the current result.",
+                )
             return ledger[token].response
         ledger[token] = Submission(token, fingerprint, response)
-        atomic_write(self.submissions_path, json.dumps({k: vars(v) for k, v in ledger.items()}, indent=2, sort_keys=True) + "\n")
+        atomic_write(
+            self.submissions_path,
+            json.dumps({k: vars(v) for k, v in ledger.items()}, indent=2, sort_keys=True) + "\n",
+        )
         protect(self.submissions_path)
         return response
 
 
 def section_value(body: str, heading: str) -> str:
     marker = heading + ":"
-    pattern = re.compile(r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL)
+    pattern = re.compile(
+        r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL
+    )
     match = pattern.search(body)
     return match.group(1).strip() if match else ""
 

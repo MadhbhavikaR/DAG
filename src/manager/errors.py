@@ -1,5 +1,6 @@
 """Domain exceptions used by the Manager application."""
 
+
 class ManagerError(Exception):
     def __init__(self, code: str, what: str, do: str):
         self.code, self.what, self.do = code, what, do
@@ -11,5 +12,3 @@ class ManagerError(Exception):
 
 def fail(code: str, what: str, do: str) -> None:
     raise ManagerError(code, what, do)
-
-

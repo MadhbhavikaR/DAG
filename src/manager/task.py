@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .domain import QUEUE_CLASS, parse_task_id
 
+
 @dataclass
 class Task:
     path: Path

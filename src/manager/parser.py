@@ -4,6 +4,7 @@ import argparse
 
 from .errors import ManagerError
 
+
 class ManagerArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
         raise ManagerError(

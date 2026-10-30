@@ -19,7 +19,12 @@ class GitRepository:
         if not git:
             return False, None
         try:
-            out = subprocess.run([git, "-C", str(self.root), "rev-parse", "--show-toplevel"], check=True, capture_output=True, text=True)
+            out = subprocess.run(
+                [git, "-C", str(self.root), "rev-parse", "--show-toplevel"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
             return True, out.stdout.strip()
         except (OSError, subprocess.CalledProcessError):
             return False, None
@@ -27,8 +32,14 @@ class GitRepository:
     def git(self, args: list[str], check: bool = True) -> subprocess.CompletedProcess[str]:
         git = shutil.which("git")
         if not git:
-            raise ManagerError("GIT_UNAVAILABLE", "git executable is unavailable", "Use a workspace without required commit gates or install git before retrying.")
-        return subprocess.run([git, "-C", str(self.root), *args], check=check, capture_output=True, text=True)
+            raise ManagerError(
+                "GIT_UNAVAILABLE",
+                "git executable is unavailable",
+                "Use a workspace without required commit gates or install git before retrying.",
+            )
+        return subprocess.run(
+            [git, "-C", str(self.root), *args], check=check, capture_output=True, text=True
+        )
 
     def git_status_paths(self) -> list[str]:
         if not self.git_info()[0]:
@@ -60,7 +71,9 @@ class GitRepository:
         ref = commit or "HEAD"
         parent = self.git(["rev-list", "--parents", "-n", "1", ref]).stdout.strip().split()
         if len(parent) > 1:
-            out = self.git(["diff-tree", "--no-commit-id", "--name-only", "-r", parent[1], ref]).stdout
+            out = self.git(
+                ["diff-tree", "--no-commit-id", "--name-only", "-r", parent[1], ref]
+            ).stdout
         else:
             out = self.git(["show", "--format=", "--name-only", ref]).stdout
         return sorted(x.strip() for x in out.splitlines() if x.strip())
@@ -81,12 +94,23 @@ class GitRepository:
 
     def git_commit(self, paths: list[str], message: str, allow_empty: bool = False) -> str:
         if not paths and not allow_empty:
-            fail("EMPTY_COMMIT", "no permitted application changes are available to commit", "Implement the requested change before entering the commit phase.")
+            fail(
+                "EMPTY_COMMIT",
+                "no permitted application changes are available to commit",
+                "Implement the requested change before entering the commit phase.",
+            )
         safe = [rel_safe(p) for p in paths]
         status = set(self.git_status_paths())
-        unexpected = sorted(p for p in status - set(safe) if not (p == ".manager" or p.startswith(".manager/")))
+        unexpected = sorted(
+            p for p in status - set(safe) if not (p == ".manager" or p.startswith(".manager/"))
+        )
         if unexpected:
-            fail("DIRTY_WORKTREE", "working tree contains changes outside the current commit boundary: " + ", ".join(unexpected), "Restore, stash, or otherwise isolate pre-existing changes, then run 'manager next'.")
+            fail(
+                "DIRTY_WORKTREE",
+                "working tree contains changes outside the current commit boundary: "
+                + ", ".join(unexpected),
+                "Restore, stash, or otherwise isolate pre-existing changes, then run 'manager next'.",
+            )
         if safe:
             self.git(["add", "--", *safe])
         commit_args = ["commit", "-m", message, "--only"]
@@ -96,4 +120,3 @@ class GitRepository:
             commit_args += ["--", *safe]
         self.git(commit_args)
         return self.git_head()
-

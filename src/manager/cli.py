@@ -16,8 +16,23 @@ from typing import Any
 from .parser import ManagerArgumentParser
 
 from .core import (
-    FORMAT_VERSION, PHASE_ROLE, STEP_STATES, STORY_ACTIVE_STATES, TASK_STATES, TASK_TRANSITIONS, ManagerError,
-    Store, Task, Step, atomic_write, generated_agent_id, now, fail, parse_task_id, protect, rel_safe,
+    FORMAT_VERSION,
+    PHASE_ROLE,
+    STEP_STATES,
+    STORY_ACTIVE_STATES,
+    TASK_STATES,
+    TASK_TRANSITIONS,
+    ManagerError,
+    Store,
+    Task,
+    Step,
+    atomic_write,
+    generated_agent_id,
+    now,
+    fail,
+    parse_task_id,
+    protect,
+    rel_safe,
 )
 
 PROMPT = """MANAGER PROTOCOL (LOW-CONTEXT SAFE)
@@ -62,43 +77,69 @@ DISCOVERY
 """
 
 
-
-
 def stdin_json() -> dict[str, Any]:
     try:
         value = json.load(sys.stdin)
     except json.JSONDecodeError as exc:
-        raise ManagerError("INVALID_JSON", f"invalid JSON: {exc.msg}", "Submit one JSON object matching RETURN_SCHEMA from 'manager next'.")
+        raise ManagerError(
+            "INVALID_JSON",
+            f"invalid JSON: {exc.msg}",
+            "Submit one JSON object matching RETURN_SCHEMA from 'manager next'.",
+        )
     if not isinstance(value, dict):
-        raise ManagerError("INVALID_JSON", "stdin must contain one JSON object", "Submit one JSON object matching RETURN_SCHEMA from 'manager next'.")
+        raise ManagerError(
+            "INVALID_JSON",
+            "stdin must contain one JSON object",
+            "Submit one JSON object matching RETURN_SCHEMA from 'manager next'.",
+        )
     return value
 
 
 def ensure_keys(value: dict[str, Any], allowed: set[str], required: set[str] = set()) -> None:
     unknown = sorted(set(value) - allowed)
     if unknown:
-        raise ManagerError("INVALID_SCHEMA", "unsupported field(s): " + ", ".join(unknown), "Remove unsupported fields and resubmit exactly the schema returned by 'manager next'.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "unsupported field(s): " + ", ".join(unknown),
+            "Remove unsupported fields and resubmit exactly the schema returned by 'manager next'.",
+        )
     missing = sorted(required - set(value))
     if missing:
-        raise ManagerError("INVALID_SCHEMA", "missing required field(s): " + ", ".join(missing), "Add the required field(s): " + ", ".join(missing) + ".")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "missing required field(s): " + ", ".join(missing),
+            "Add the required field(s): " + ", ".join(missing) + ".",
+        )
 
 
 def require_str(value: Any, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
-        raise ManagerError("INVALID_SCHEMA", f"{field} must be a non-empty string", f"Provide a non-empty {field} and resubmit.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            f"{field} must be a non-empty string",
+            f"Provide a non-empty {field} and resubmit.",
+        )
     return value.strip()
 
 
 def require_list(value: Any, field: str, nonempty: bool = False) -> list[Any]:
     if not isinstance(value, list) or (nonempty and not value):
-        raise ManagerError("INVALID_SCHEMA", f"{field} must be a {'non-empty ' if nonempty else ''}array", f"Provide {field} as an array and resubmit.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            f"{field} must be a {'non-empty ' if nonempty else ''}array",
+            f"Provide {field} as an array and resubmit.",
+        )
     return value
 
 
 def require_string_list(value: Any, field: str, nonempty: bool = False) -> list[str]:
     values = require_list(value, field, nonempty)
     if any(not isinstance(item, str) or not item.strip() for item in values):
-        raise ManagerError("INVALID_SCHEMA", f"{field} must contain only non-empty strings", f"Provide {field} as an array of non-empty strings.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            f"{field} must contain only non-empty strings",
+            f"Provide {field} as an array of non-empty strings.",
+        )
     return [item.strip() for item in values]
 
 
@@ -177,8 +218,16 @@ ERROR_RECOVERY_COMMANDS: dict[str, list[str]] = {
     "NO_TASK": ["manager status --compact", "manager task add", "manager next"],
     "INVALID_JSON": ["manager submit-schema --schema-path", "manager submit"],
     "INVALID_SCHEMA": ["manager submit-schema --schema-path", "manager submit"],
-    "INCOMPLETE_VALIDATION": ["manager next", "manager submit-schema --schema-path", "manager submit"],
-    "UNAUTHORIZED_VALIDATION": ["manager next", "manager submit-schema --schema-path", "manager submit"],
+    "INCOMPLETE_VALIDATION": [
+        "manager next",
+        "manager submit-schema --schema-path",
+        "manager submit",
+    ],
+    "UNAUTHORIZED_VALIDATION": [
+        "manager next",
+        "manager submit-schema --schema-path",
+        "manager submit",
+    ],
     "INVALID_PHASE": ["manager next", "manager submit-schema --schema-path", "manager submit"],
     "INPUT_TIMEOUT": ["manager submit-schema --schema-path", "manager submit"],
 }
@@ -210,7 +259,9 @@ def error_hint(code: str) -> str | None:
 
 
 def error_gotcha(code: str) -> str:
-    return ERROR_GOTCHAS.get(code, "Do not edit .manager directly or bypass manager-owned transitions.")
+    return ERROR_GOTCHAS.get(
+        code, "Do not edit .manager directly or bypass manager-owned transitions."
+    )
 
 
 def state_available_commands(store: Store) -> list[str]:
@@ -226,13 +277,41 @@ def state_available_commands(store: Store) -> list[str]:
             if task.status != "active" or not task.phase:
                 return ["manager next", "manager status --compact"]
             phase_map = {
-                "analysis": ["manager context --compact --max-chars 1200", "manager submit-schema --schema-path", "manager submit"],
-                "planning": ["manager context --compact --max-chars 1200", "manager submit-schema --schema-path", "manager submit"],
-                "implementation": ["manager submit-schema --schema-path", "manager submit", "manager next"],
-                "step_validation": ["manager submit-schema --schema-path", "manager submit", "manager next"],
-                "step_commit": ["manager submit-schema --schema-path", "manager submit", "manager next"],
-                "final_validation": ["manager submit-schema --schema-path", "manager submit", "manager next"],
-                "final_commit": ["manager submit-schema --schema-path", "manager submit", "manager next"],
+                "analysis": [
+                    "manager context --compact --max-chars 1200",
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                ],
+                "planning": [
+                    "manager context --compact --max-chars 1200",
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                ],
+                "implementation": [
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                    "manager next",
+                ],
+                "step_validation": [
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                    "manager next",
+                ],
+                "step_commit": [
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                    "manager next",
+                ],
+                "final_validation": [
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                    "manager next",
+                ],
+                "final_commit": [
+                    "manager submit-schema --schema-path",
+                    "manager submit",
+                    "manager next",
+                ],
             }
             return phase_map.get(task.phase, ["manager next", "manager status --compact"])
     except (ManagerError, OSError, ValueError):
@@ -251,7 +330,9 @@ def gotcha_reference(exc: ManagerError) -> str:
     return error_gotcha(exc.code)
 
 
-def compose_error_payload(exc: ManagerError, store: Store, schema_path: str | None = None) -> dict[str, Any]:
+def compose_error_payload(
+    exc: ManagerError, store: Store, schema_path: str | None = None
+) -> dict[str, Any]:
     do_text = recovery_do_for_error(exc, schema_path=schema_path) or exc.do
     hint_base = error_hint(exc.code)
     hint_state = state_reference_hint(store, schema_path=schema_path)
@@ -268,7 +349,9 @@ def compose_error_payload(exc: ManagerError, store: Store, schema_path: str | No
     return payload
 
 
-def render_manager_error(exc: ManagerError, store: Store, as_json: bool = False, schema_path: str | None = None) -> str:
+def render_manager_error(
+    exc: ManagerError, store: Store, as_json: bool = False, schema_path: str | None = None
+) -> str:
     payload = compose_error_payload(exc, store, schema_path=schema_path)
     if as_json:
         return json.dumps(payload, indent=2)
@@ -280,7 +363,11 @@ def render_manager_error(exc: ManagerError, store: Store, as_json: bool = False,
 
 def recovery_do_for_error(exc: ManagerError, schema_path: str | None = None) -> str | None:
     commands = ERROR_RECOVERY_COMMANDS.get(exc.code)
-    if exc.code == "INVALID_SCHEMA" and schema_path and Path(schema_path).name == TASK_ADD_SCHEMA_FILE:
+    if (
+        exc.code == "INVALID_SCHEMA"
+        and schema_path
+        and Path(schema_path).name == TASK_ADD_SCHEMA_FILE
+    ):
         commands = ["manager task add", "manager next"]
     if not commands:
         return None
@@ -410,6 +497,7 @@ def resolve_active_return_schema_path(store: Store) -> str | None:
     except (ManagerError, OSError, ValueError):
         return None
 
+
 def _parse_rendered_output(rendered_output: str) -> Any:
     try:
         return json.loads(rendered_output)
@@ -503,14 +591,28 @@ def optional_token(value: Any) -> str:
     if value is None:
         return ""
     if not isinstance(value, str):
-        raise ManagerError("INVALID_SCHEMA", "submission_token must be a string", "Provide the manager-issued submission token as a string or omit it.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "submission_token must be a string",
+            "Provide the manager-issued submission token as a string or omit it.",
+        )
     return value.strip()
+
 
 def reject_secret(text: str, field: str) -> None:
     if len(text) > MAX_SUBMITTED_TEXT:
-        raise ManagerError("OUTPUT_TOO_LARGE", f"{field} exceeds the {MAX_SUBMITTED_TEXT}-character submission limit", "Submit a concise result containing the exit code, digest, and a bounded head/tail summary.")
+        raise ManagerError(
+            "OUTPUT_TOO_LARGE",
+            f"{field} exceeds the {MAX_SUBMITTED_TEXT}-character submission limit",
+            "Submit a concise result containing the exit code, digest, and a bounded head/tail summary.",
+        )
     if any(rx.search(text) for rx in SECRET_PATTERNS):
-        raise ManagerError("SENSITIVE_OUTPUT", f"{field} appears to contain secret material", "Redact credentials, tokens, private keys, and other secrets before resubmitting.")
+        raise ManagerError(
+            "SENSITIVE_OUTPUT",
+            f"{field} appears to contain secret material",
+            "Redact credentials, tokens, private keys, and other secrets before resubmitting.",
+        )
+
 
 def validate_command(command: Any, field: str) -> str:
     value = require_str(command, field)
@@ -518,9 +620,17 @@ def validate_command(command: Any, field: str) -> str:
     try:
         parts = shlex.split(value, posix=True)
     except ValueError as exc:
-        raise ManagerError("INVALID_COMMAND", f"{field} is not a valid command expression: {exc}", "Resubmit the exact executable and arguments as a single canonical command string.") from exc
+        raise ManagerError(
+            "INVALID_COMMAND",
+            f"{field} is not a valid command expression: {exc}",
+            "Resubmit the exact executable and arguments as a single canonical command string.",
+        ) from exc
     if not parts or any(ch in value for ch in (";", "&&", "||", "|", ">", "<", "`", "\n", "\r")):
-        raise ManagerError("INVALID_COMMAND", f"{field} contains shell control syntax", "Use one executable with explicit arguments; do not submit shell pipelines, redirects, or command chaining.")
+        raise ManagerError(
+            "INVALID_COMMAND",
+            f"{field} contains shell control syntax",
+            "Use one executable with explicit arguments; do not submit shell pipelines, redirects, or command chaining.",
+        )
     return value
 
 
@@ -528,7 +638,11 @@ def command_argv(command: str) -> list[str]:
     try:
         return shlex.split(command, posix=True)
     except ValueError as exc:
-        raise ManagerError("INVALID_COMMAND", f"stored command is malformed: {exc}", "Repair the accepted plan through an administrative recovery procedure before continuing.") from exc
+        raise ManagerError(
+            "INVALID_COMMAND",
+            f"stored command is malformed: {exc}",
+            "Repair the accepted plan through an administrative recovery procedure before continuing.",
+        ) from exc
 
 
 def repository_relative_path(value: str) -> str | None:
@@ -563,7 +677,9 @@ def parse_repo_file_reference(value: str) -> tuple[str, int] | None:
     return rel, line_number
 
 
-def format_file_evidence_entry(rel_path: str, line_number: int, commit_id: str, state: str = "before") -> str:
+def format_file_evidence_entry(
+    rel_path: str, line_number: int, commit_id: str, state: str = "before"
+) -> str:
     return f"{rel_path}:{line_number} | commit={commit_id} | state={state}"
 
 
@@ -594,6 +710,8 @@ def enrich_file_evidence_list(
             continue
         enriched.append(format_file_evidence_entry(rel, line_number, resolved_commit, state=state))
     return enriched
+
+
 def truncate_text(value: str, max_chars: int) -> str:
     text = value.strip()
     if len(text) <= max_chars:
@@ -603,7 +721,9 @@ def truncate_text(value: str, max_chars: int) -> str:
 
 def extract_section(chunk: str, heading: str) -> str:
     marker = heading + ":"
-    pattern = re.compile(r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL)
+    pattern = re.compile(
+        r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL
+    )
     match = pattern.search(chunk)
     return match.group(1).strip() if match else ""
 
@@ -655,6 +775,7 @@ def compact_context_record(rid: str, typ: str, chunk: str, max_chars: int) -> st
     rendered = "\n".join(lines).rstrip() + "\n"
     return truncate_text(rendered, max_chars).rstrip() + "\n"
 
+
 def selected_task(store: Store, tasks: dict[str, Task]) -> Task | None:
     active = [t for t in tasks.values() if t.status == "active"]
     if active:
@@ -668,27 +789,39 @@ def task_story(task: Task) -> int:
 
 
 def active_story_scope(tasks: dict[str, Task]) -> int | None:
-    active_stories = sorted({
-        task_story(task)
-        for task in tasks.values()
-        if task.status in {"active", "expand", "blocked"}
-    })
+    active_stories = sorted(
+        {
+            task_story(task)
+            for task in tasks.values()
+            if task.status in {"active", "expand", "blocked"}
+        }
+    )
     return active_stories[0] if active_stories else None
 
 
-def task_body(title: str, what: str = "", done_when: str = "", why: str = "", how: str = "", constraints: list[str] | None = None) -> str:
+def task_body(
+    title: str,
+    what: str = "",
+    done_when: str = "",
+    why: str = "",
+    how: str = "",
+    constraints: list[str] | None = None,
+) -> str:
     return (
         f"# {title}\n\nWHAT:\n{what}\n\nDONE_WHEN:\n{done_when}\n\nWHY:\n{why}\n\nHOW:\n{how}\n\n"
-        + "CONSTRAINTS:\n" + "\n".join(f"- {x}" for x in (constraints or [])) + "\n\nBLOCKER:\nNone\n\nCHILDREN:\n- None\n"
+        + "CONSTRAINTS:\n"
+        + "\n".join(f"- {x}" for x in (constraints or []))
+        + "\n\nBLOCKER:\nNone\n\nCHILDREN:\n- None\n"
     )
 
 
 def get_field(body: str, name: str) -> str:
     marker = name + ":"
-    pattern = re.compile(r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL)
+    pattern = re.compile(
+        r"^" + re.escape(marker) + r"\n(.*?)(?=\n\n[A-Z][A-Z_]*:|\Z)", re.MULTILINE | re.DOTALL
+    )
     match = pattern.search(body)
     return match.group(1).strip() if match else ""
-
 
 
 STEP_TRANSITIONS = {
@@ -704,10 +837,15 @@ STEP_TRANSITIONS = {
     "blocked": {"blocked", "ready"},
 }
 
+
 def transition_step(step: Step, new_status: str) -> None:
     """Apply the manager-owned step lifecycle transition graph."""
     if new_status not in STEP_STATES:
-        raise ManagerError("INVALID_STEP_TRANSITION", f"unsupported step state {new_status}", "Use only manager-defined step lifecycle states.")
+        raise ManagerError(
+            "INVALID_STEP_TRANSITION",
+            f"unsupported step state {new_status}",
+            "Use only manager-defined step lifecycle states.",
+        )
     allowed = STEP_TRANSITIONS.get(step.status, set())
     if new_status not in allowed:
         raise ManagerError(
@@ -717,6 +855,7 @@ def transition_step(step: Step, new_status: str) -> None:
         )
     step.status = new_status
 
+
 def current_step(store: Store, task: Task) -> Step | None:
     steps = store.load_steps(task.id)
     if task.current_step:
@@ -724,10 +863,18 @@ def current_step(store: Store, task: Task) -> Step | None:
             if step.id == task.current_step:
                 return step
     for step in steps:
-        if step.status in {"ready", "active", "implemented", "validating", "validated", "committing", "failed", "blocked"}:
+        if step.status in {
+            "ready",
+            "active",
+            "implemented",
+            "validating",
+            "validated",
+            "committing",
+            "failed",
+            "blocked",
+        }:
             return step
     return None
-
 
 
 def recover_active_task_with_steps(store: Store, task: Task) -> Task:
@@ -751,6 +898,7 @@ def recover_active_task_with_steps(store: Store, task: Task) -> Task:
     store.save_task(task)
     return task
 
+
 def envelope_load_ids(store: Store, task: Task) -> list[str]:
     """Return only manager-resolvable context IDs required by the current phase."""
     if task.phase == "implementation":
@@ -773,9 +921,12 @@ def envelope_load_ids(store: Store, task: Task) -> list[str]:
                     status = re.search(r"^STATUS:\n([^\n]+)", chunk, flags=re.MULTILINE)
                     latest = status.group(1).strip() if status else ""
                     resolutions = re.findall(
-                        r"## DECISION-RESOLUTION-" + re.escape(rid) +
-                        r"\n\nDECISION_ID:\n" + re.escape(rid) +
-                        r"\n\nSTATUS:\n([^\n]+)", body
+                        r"## DECISION-RESOLUTION-"
+                        + re.escape(rid)
+                        + r"\n\nDECISION_ID:\n"
+                        + re.escape(rid)
+                        + r"\n\nSTATUS:\n([^\n]+)",
+                        body,
                     )
                     if resolutions:
                         latest = resolutions[-1].strip()
@@ -785,7 +936,9 @@ def envelope_load_ids(store: Store, task: Task) -> list[str]:
     if task.phase == "final_validation":
         path = store.evidence_dir / f"{task.id}-evidence.md"
         if path.exists():
-            return re.findall(r"^## (EVT-\d{4})$", path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+            return re.findall(
+                r"^## (EVT-\d{4})$", path.read_text(encoding="utf-8"), flags=re.MULTILINE
+            )
     return []
 
 
@@ -796,7 +949,11 @@ def promote_ready_step(store: Store, task: Task) -> Step | None:
         return step
     steps = store.load_steps(task.id)
     if any(s.status in {"active", "validating", "committing"} and s.id != step.id for s in steps):
-        raise ManagerError("CORRUPT_STATE", f"task {task.id} has another executable step while {step.id} is ready", "Restore the managed step lifecycle before continuing.")
+        raise ManagerError(
+            "CORRUPT_STATE",
+            f"task {task.id} has another executable step while {step.id} is ready",
+            "Restore the managed step lifecycle before continuing.",
+        )
     transition_step(step, "active")
     step.updated = now()
     store.save_step(step)
@@ -806,12 +963,22 @@ def promote_ready_step(store: Store, task: Task) -> Step | None:
 def next_command_for_phase(phase: str, loads: list[str]) -> str:
     if loads:
         return "manager context"
-    if phase in {"analysis", "planning", "implementation", "step_validation", "step_commit", "final_validation", "final_commit"}:
+    if phase in {
+        "analysis",
+        "planning",
+        "implementation",
+        "step_validation",
+        "step_commit",
+        "final_validation",
+        "final_commit",
+    }:
         return "manager submit"
     return "manager next"
 
 
-def next_envelope_payload(store: Store, task: Task, promote_ready: bool = True) -> dict[str, Any] | None:
+def next_envelope_payload(
+    store: Store, task: Task, promote_ready: bool = True
+) -> dict[str, Any] | None:
     phase = task.phase
     if not phase:
         return None
@@ -821,29 +988,66 @@ def next_envelope_payload(store: Store, task: Task, promote_ready: bool = True) 
     objective = task.title
     action = ""
     accept: list[str] = []
-    boundary = ["May edit application repository files explicitly permitted by the current step.", "Must not edit: .manager/**"]
+    boundary = [
+        "May edit application repository files explicitly permitted by the current step.",
+        "Must not edit: .manager/**",
+    ]
     retry: list[str] = []
     schema: dict[str, Any]
 
     if phase == "analysis":
         action = "Inspect the task and relevant application material. Produce evidence-backed findings, identify decisions, and determine whether the task is atomic. Do not implement changes."
         accept = ["Relevant evidence is recorded.", "Atomicity is explicitly determined."]
-        schema = {"agent_id": "string", "outcome": "completed", "summary": "string", "finding_ids": ["FINDING-0001"], "decision_ids": ["DEC-0001"], "atomic": True, "decomposition_reason": "string, required only when atomic is false"}
+        schema = {
+            "agent_id": "string",
+            "outcome": "completed",
+            "summary": "string",
+            "finding_ids": ["FINDING-0001"],
+            "decision_ids": ["DEC-0001"],
+            "atomic": True,
+            "decomposition_reason": "string, required only when atomic is false",
+        }
     elif phase == "planning":
         loads = envelope_load_ids(store, task)
         action = "Create one ordered implementation plan for this atomic task. Use only the accepted findings and decisions listed in LOAD. Each step must have one bounded action, acceptance criteria, context IDs, edit boundaries, validation commands, and commit policy."
-        accept = ["The plan is ordered and bounded.", "Every context reference is reachable.", "Every step has validation and an explicit commit policy."]
-        schema = {"agent_id": "string", "steps": [{"title": "string", "action": "string", "accept": ["string"], "load": ["FINDING-0001"], "may_edit": ["src/file.py"], "validation": ["pytest tests/test.py"], "commit_policy": "required", "commit_type": "chore"}], "final_validation": ["pytest"]}
+        accept = [
+            "The plan is ordered and bounded.",
+            "Every context reference is reachable.",
+            "Every step has validation and an explicit commit policy.",
+        ]
+        schema = {
+            "agent_id": "string",
+            "steps": [
+                {
+                    "title": "string",
+                    "action": "string",
+                    "accept": ["string"],
+                    "load": ["FINDING-0001"],
+                    "may_edit": ["src/file.py"],
+                    "validation": ["pytest tests/test.py"],
+                    "commit_policy": "required",
+                    "commit_type": "chore",
+                }
+            ],
+            "final_validation": ["pytest"],
+        }
     elif phase == "implementation":
         if promote_ready:
             step = promote_ready_step(store, task)
         if not step:
-            raise ManagerError("CORRUPT_STATE", f"active task {task.id} has no current step", "Restore the canonical step records before continuing.")
+            raise ManagerError(
+                "CORRUPT_STATE",
+                f"active task {task.id} has no current step",
+                "Restore the canonical step records before continuing.",
+            )
         loads = step.load
         objective = step.title
         action = step.action
         accept = step.accept
-        boundary = ["May edit: " + (", ".join(step.may_edit) if step.may_edit else "none"), "Must not edit: .manager/**"]
+        boundary = [
+            "May edit: " + (", ".join(step.may_edit) if step.may_edit else "none"),
+            "Must not edit: .manager/**",
+        ]
         schema = {
             "agent_id": "string",
             "outcome": "completed | blocked",
@@ -857,26 +1061,61 @@ def next_envelope_payload(store: Store, task: Task, promote_ready: bool = True) 
             retry = ["manager next"]
     elif phase == "step_validation":
         if not step:
-            raise ManagerError("CORRUPT_STATE", f"no current step for {task.id}", "Restore the canonical step records before continuing.")
+            raise ManagerError(
+                "CORRUPT_STATE",
+                f"no current step for {task.id}",
+                "Restore the canonical step records before continuing.",
+            )
         objective = step.title
         action = "Run exactly the validation commands listed for the current step. Record actual exit codes and concise observed results. Do not change application behavior to force a pass."
-        accept = ["Every required command was executed.", "Every required command passed for a successful result."]
-        schema = {"agent_id": "string", "outcome": "passed | failed | blocked", "runs": [{"command": "string", "exit_code": 0, "summary": "string"}], "blocker": "string, required only when blocked"}
+        accept = [
+            "Every required command was executed.",
+            "Every required command passed for a successful result.",
+        ]
+        schema = {
+            "agent_id": "string",
+            "outcome": "passed | failed | blocked",
+            "runs": [{"command": "string", "exit_code": 0, "summary": "string"}],
+            "blocker": "string, required only when blocked",
+        }
     elif phase == "step_commit":
         if not step:
-            raise ManagerError("CORRUPT_STATE", f"no current step for {task.id}", "Restore the canonical step records before continuing.")
+            raise ManagerError(
+                "CORRUPT_STATE",
+                f"no current step for {task.id}",
+                "Restore the canonical step records before continuing.",
+            )
         objective = step.title
         action = "Verify commit preconditions and request the manager to create the canonical step commit. Do not run git commit yourself."
-        accept = ["Current step validation passed.", "Only permitted application files are included."]
+        accept = [
+            "Current step validation passed.",
+            "Only permitted application files are included.",
+        ]
         schema = {"agent_id": "string", "outcome": "ready_to_commit | skip_commit"}
     elif phase == "final_validation":
         loads = envelope_load_ids(store, task)
         action = "Review the integrated result against the task completion criteria, inspect the complete relevant diff, and run every final validation command. Use only the evidence listed in LOAD as prior manager-recorded context. Report pass, failure, or blocker with evidence."
-        accept = ["All child tasks and implementation steps are complete.", "All final validation commands passed.", "The relevant diff has been reviewed."]
-        schema = {"agent_id": "string", "outcome": "passed | failed | blocked", "runs": [{"command": "string", "exit_code": 0, "summary": "string"}], "review_findings": [], "failure_classification": "implementation | planning, required only when failed", "blocker": "string, required only when blocked", "diff_reviewed": True}
+        accept = [
+            "All child tasks and implementation steps are complete.",
+            "All final validation commands passed.",
+            "The relevant diff has been reviewed.",
+        ]
+        schema = {
+            "agent_id": "string",
+            "outcome": "passed | failed | blocked",
+            "runs": [{"command": "string", "exit_code": 0, "summary": "string"}],
+            "review_findings": [],
+            "failure_classification": "implementation | planning, required only when failed",
+            "blocker": "string, required only when blocked",
+            "diff_reviewed": True,
+        }
     elif phase == "final_commit":
         action = "Verify final commit preconditions and request the manager to create the canonical final commit. Do not run git commit yourself."
-        accept = ["All steps are done.", "Final validation passed.", "No unresolved review finding exists."]
+        accept = [
+            "All steps are done.",
+            "Final validation passed.",
+            "No unresolved review finding exists.",
+        ]
         schema = {"agent_id": "string", "outcome": "ready_to_commit"}
     else:
         return None
@@ -932,11 +1171,15 @@ def render_next_envelope(payload: dict[str, Any], as_json: bool = False) -> str:
     lines += ["", "OUTPUT_LIMIT:", f"{payload['output_limit']} characters per textual result field"]
     if payload.get("retry"):
         lines += ["", "RETRY:"] + payload["retry"]
-    lines += ["", "SUBMIT:", payload["submit_command"], "", "RULES:"] + [f"- {x}" for x in payload["rules"]]
+    lines += ["", "SUBMIT:", payload["submit_command"], "", "RULES:"] + [
+        f"- {x}" for x in payload["rules"]
+    ]
     return "\n".join(lines) + "\n"
 
 
-def next_envelope(store: Store, task: Task, as_json: bool = False, promote_ready: bool = True) -> str:
+def next_envelope(
+    store: Store, task: Task, as_json: bool = False, promote_ready: bool = True
+) -> str:
     payload = next_envelope_payload(store, task, promote_ready=promote_ready)
     if not payload:
         return "NO_TASK"
@@ -947,7 +1190,11 @@ def next_envelope(store: Store, task: Task, as_json: bool = False, promote_ready
 def transition_task(task: Task, new_status: str) -> None:
     """Apply a manager-owned task lifecycle transition."""
     if new_status not in TASK_STATES:
-        raise ManagerError("INVALID_TRANSITION", f"unsupported task state {new_status}", "Use only manager-defined task lifecycle states.")
+        raise ManagerError(
+            "INVALID_TRANSITION",
+            f"unsupported task state {new_status}",
+            "Use only manager-defined task lifecycle states.",
+        )
     allowed = TASK_TRANSITIONS.get(task.status, set())
     if new_status not in allowed:
         raise ManagerError(
@@ -958,7 +1205,9 @@ def transition_task(task: Task, new_status: str) -> None:
     task.status = new_status
 
 
-def ensure_story_scope_before_transition(tasks: dict[str, Task], task: Task, new_status: str) -> None:
+def ensure_story_scope_before_transition(
+    tasks: dict[str, Task], task: Task, new_status: str
+) -> None:
     if new_status not in STORY_ACTIVE_STATES:
         return
     target_story = parse_task_id(task.id)[0]
@@ -985,7 +1234,9 @@ def ensure_story_scope_before_transition(tasks: dict[str, Task], task: Task, new
 def checkpoint_preexisting_changes(store: Store, task: Task) -> None:
     if not store.git_info()[0]:
         return
-    preexisting = [p for p in store.git_status_paths() if p != ".manager" and not p.startswith(".manager/")]
+    preexisting = [
+        p for p in store.git_status_paths() if p != ".manager" and not p.startswith(".manager/")
+    ]
     if preexisting:
         try:
             store.git_commit(preexisting, f"chore: checkpoint before activating {task.id}")
@@ -1004,22 +1255,40 @@ def activate_task(store: Store, task: Task) -> None:
     if task.status != "planned":
         return
     if any(t.status == "active" and t.id != task.id for t in tasks.values()):
-        raise ManagerError("ACTIVE_TASK_EXISTS", "another task is already active", "Run 'manager next' and continue the active task before starting another.")
+        raise ManagerError(
+            "ACTIVE_TASK_EXISTS",
+            "another task is already active",
+            "Run 'manager next' and continue the active task before starting another.",
+        )
     ensure_story_scope_before_transition(tasks, task, "active")
     checkpoint_preexisting_changes(store, task)
-    transition_task(task, "active"); task.phase = "analysis"; task.updated = now(); store.save_task(task)
+    transition_task(task, "active")
+    task.phase = "analysis"
+    task.updated = now()
+    store.save_task(task)
 
 
 def activate_expanded(store: Store, task: Task) -> None:
     tasks = store.load_tasks()
     children = store.children(store.load_tasks(), task.id)
     if not children:
-        raise ManagerError("INVALID_DECOMPOSITION", f"expanded task {task.id} has no children", "Create at least one child task before continuing.")
+        raise ManagerError(
+            "INVALID_DECOMPOSITION",
+            f"expanded task {task.id} has no children",
+            "Create at least one child task before continuing.",
+        )
     if not all(c.status == "done" for c in children):
-        raise ManagerError("CHILDREN_INCOMPLETE", f"expanded task {task.id} cannot resume until all children are done", "Run 'manager next' to work the remaining child task.")
+        raise ManagerError(
+            "CHILDREN_INCOMPLETE",
+            f"expanded task {task.id} cannot resume until all children are done",
+            "Run 'manager next' to work the remaining child task.",
+        )
     ensure_story_scope_before_transition(tasks, task, "active")
     checkpoint_preexisting_changes(store, task)
-    transition_task(task, "active"); task.phase = "final_validation"; task.updated = now(); store.save_task(task)
+    transition_task(task, "active")
+    task.phase = "final_validation"
+    task.updated = now()
+    store.save_task(task)
 
 
 def cmd_next(store: Store, as_json: bool = False) -> str:
@@ -1028,17 +1297,21 @@ def cmd_next(store: Store, as_json: bool = False) -> str:
         tasks = store.load_tasks()
         active = [t for t in tasks.values() if t.status == "active"]
         if active:
-            active_task = recover_active_task_with_steps(store, sorted(active, key=lambda t: t.order_key)[0])
+            active_task = recover_active_task_with_steps(
+                store, sorted(active, key=lambda t: t.order_key)[0]
+            )
             store.rebuild_index()
             return next_envelope(store, active_task, as_json=as_json)
 
         scope_story = active_story_scope(tasks)
         if scope_story is None:
-            selectable_stories = sorted({
-                task_story(task)
-                for task in tasks.values()
-                if task.status in {"planned", "expand"}
-            })
+            selectable_stories = sorted(
+                {
+                    task_story(task)
+                    for task in tasks.values()
+                    if task.status in {"planned", "expand"}
+                }
+            )
             scope_story = selectable_stories[0] if selectable_stories else None
         if scope_story is None:
             return no_task_payload(store)
@@ -1047,12 +1320,16 @@ def cmd_next(store: Store, as_json: bool = False) -> str:
         candidates = [t for t in scoped_tasks if t.status == "planned"]
         # An expanded parent is a coordination node. Its actionable children are selected
         # before the parent can resume final integration.
-        for parent in sorted([t for t in scoped_tasks if t.status == "expand"], key=lambda t: t.order_key):
+        for parent in sorted(
+            [t for t in scoped_tasks if t.status == "expand"], key=lambda t: t.order_key
+        ):
             children = store.children(tasks, parent.id)
             candidates.extend(c for c in children if c.status == "planned")
         candidates = sorted(candidates, key=lambda t: (t.order_key, t.priority))
         if not candidates:
-            expanded = sorted([t for t in scoped_tasks if t.status == "expand"], key=lambda t: t.order_key)
+            expanded = sorted(
+                [t for t in scoped_tasks if t.status == "expand"], key=lambda t: t.order_key
+            )
             if expanded and all(c.status == "done" for c in store.children(tasks, expanded[0].id)):
                 task = expanded[0]
                 activate_expanded(store, task)
@@ -1064,12 +1341,26 @@ def cmd_next(store: Store, as_json: bool = False) -> str:
         store.rebuild_index()
         return next_envelope(store, task, as_json=as_json)
 
-def cmd_context(store: Store, ref: str | None, compact: bool = False, max_chars: int = DEFAULT_CONTEXT_MAX_CHARS, as_json: bool = False) -> str:
+
+def cmd_context(
+    store: Store,
+    ref: str | None,
+    compact: bool = False,
+    max_chars: int = DEFAULT_CONTEXT_MAX_CHARS,
+    as_json: bool = False,
+) -> str:
     if max_chars < 200 or max_chars > MAX_SUBMITTED_TEXT:
-        raise ManagerError("INVALID_CONTEXT_LIMIT", "max_chars must be between 200 and 8000", "Use --max-chars with a value from 200 through 8000.")
+        raise ManagerError(
+            "INVALID_CONTEXT_LIMIT",
+            "max_chars must be between 200 and 8000",
+            "Use --max-chars with a value from 200 through 8000.",
+        )
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = selected_task(store, tasks)
-        if not task or task.status != "active": return "NO_TASK"
+        store.initialize()
+        tasks = store.load_tasks()
+        task = selected_task(store, tasks)
+        if not task or task.status != "active":
+            return "NO_TASK"
         step = current_step(store, task)
         allowed = set(envelope_load_ids(store, task))
         if ref:
@@ -1078,7 +1369,11 @@ def cmd_context(store: Store, ref: str | None, compact: bool = False, max_chars:
             else:
                 local = ref
             if local not in allowed:
-                raise ManagerError("UNREACHABLE_CONTEXT", f"context ID {ref} is not reachable from the current envelope", "Run 'manager next' and load only IDs listed in LOAD.")
+                raise ManagerError(
+                    "UNREACHABLE_CONTEXT",
+                    f"context ID {ref} is not reachable from the current envelope",
+                    "Run 'manager next' and load only IDs listed in LOAD.",
+                )
             refs = [local]
         else:
             refs = list(allowed)
@@ -1095,31 +1390,68 @@ def cmd_context(store: Store, ref: str | None, compact: bool = False, max_chars:
                 path = store.evidence_dir / f"{task.id}-evidence.md"
                 record = resolve_record(path, rid, "evidence", compact=compact, max_chars=max_chars)
             else:
-                raise ManagerError("INVALID_CONTEXT_ID", f"unsupported context ID {rid}", "Use only stable FINDING, DEC, or EVT IDs returned by the manager.")
+                raise ManagerError(
+                    "INVALID_CONTEXT_ID",
+                    f"unsupported context ID {rid}",
+                    "Use only stable FINDING, DEC, or EVT IDs returned by the manager.",
+                )
             out.append(record["text"])
-            records.append({"id": record["id"], "type": record["type"], "content": record["content"], "compact": compact})
+            records.append(
+                {
+                    "id": record["id"],
+                    "type": record["type"],
+                    "content": record["content"],
+                    "compact": compact,
+                }
+            )
         if as_json:
-            return json.dumps({
-                "task": task.id,
-                "phase": task.phase,
-                "compact": compact,
-                "max_chars": max_chars,
-                "records": records,
-            }, indent=2)
+            return json.dumps(
+                {
+                    "task": task.id,
+                    "phase": task.phase,
+                    "compact": compact,
+                    "max_chars": max_chars,
+                    "records": records,
+                },
+                indent=2,
+            )
         header = [f"TASK: {task.id}", f"PHASE: {task.phase}", ""]
         return "\n".join(header + [x for x in out if x]) or "NO_CONTEXT"
 
 
-def resolve_record(path: Path, rid: str, typ: str, compact: bool = False, max_chars: int = DEFAULT_CONTEXT_MAX_CHARS) -> dict[str, str]:
+def resolve_record(
+    path: Path,
+    rid: str,
+    typ: str,
+    compact: bool = False,
+    max_chars: int = DEFAULT_CONTEXT_MAX_CHARS,
+) -> dict[str, str]:
     if not path.exists():
-        raise ManagerError("MISSING_CONTEXT", f"context record {rid} is unavailable", "Use 'manager next' to refresh the current envelope and load only reachable records.")
-    _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(path.read_text(encoding="utf-8"))
+        raise ManagerError(
+            "MISSING_CONTEXT",
+            f"context record {rid} is unavailable",
+            "Use 'manager next' to refresh the current envelope and load only reachable records.",
+        )
+    _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(
+        path.read_text(encoding="utf-8")
+    )
     marker = "## " + rid
     if marker not in body:
-        raise ManagerError("MISSING_CONTEXT", f"context record {rid} is unavailable", "Use 'manager next' to refresh the current envelope.")
+        raise ManagerError(
+            "MISSING_CONTEXT",
+            f"context record {rid} is unavailable",
+            "Use 'manager next' to refresh the current envelope.",
+        )
     chunk = body.split(marker, 1)[1].split("\n## ", 1)[0].strip()
     if typ == "decision":
-        resolutions = re.findall(r"## DECISION-RESOLUTION-" + re.escape(rid) + r"\n\nDECISION_ID:\n" + re.escape(rid) + r"\n\nSTATUS:\n([^\n]+)", body)
+        resolutions = re.findall(
+            r"## DECISION-RESOLUTION-"
+            + re.escape(rid)
+            + r"\n\nDECISION_ID:\n"
+            + re.escape(rid)
+            + r"\n\nSTATUS:\n([^\n]+)",
+            body,
+        )
         if resolutions:
             chunk += "\n\nSTATUS:\n" + resolutions[-1].strip()
     if compact:
@@ -1141,7 +1473,11 @@ def cmd_task_add(store: Store, args: argparse.Namespace) -> str | dict[str, Any]
         validated_items: list[dict[str, Any]] = []
         for index, item in enumerate(items, 1):
             if not isinstance(item, dict):
-                raise ManagerError("INVALID_SCHEMA", f"items[{index}] must be an object", "Provide every batch item as a JSON object.")
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    f"items[{index}] must be an object",
+                    "Provide every batch item as a JSON object.",
+                )
             ensure_keys(item, task_fields, {"title"})
             validated_items.append(item)
         batch_items = validated_items
@@ -1153,12 +1489,28 @@ def cmd_task_add(store: Store, args: argparse.Namespace) -> str | dict[str, Any]
     for index, item in enumerate(batch_items, 1):
         priority_value = item.get("priority", 3)
         if not isinstance(priority_value, int) or isinstance(priority_value, bool):
-            raise ManagerError("INVALID_SCHEMA", f"items[{index}].priority must be an integer", "Provide an integer priority from 0 through 99.")
+            raise ManagerError(
+                "INVALID_SCHEMA",
+                f"items[{index}].priority must be an integer",
+                "Provide an integer priority from 0 through 99.",
+            )
         if not 0 <= priority_value <= 99:
-            raise ManagerError("INVALID_TASK", f"items[{index}].priority must be between 0 and 99", "Provide a priority from 0 through 99.")
+            raise ManagerError(
+                "INVALID_TASK",
+                f"items[{index}].priority must be between 0 and 99",
+                "Provide a priority from 0 through 99.",
+            )
         for field_name in ("what", "done_when", "why", "how"):
-            if field_name in item and item[field_name] is not None and not isinstance(item[field_name], str):
-                raise ManagerError("INVALID_SCHEMA", f"items[{index}].{field_name} must be a string", f"Provide items[{index}].{field_name} as a string.")
+            if (
+                field_name in item
+                and item[field_name] is not None
+                and not isinstance(item[field_name], str)
+            ):
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    f"items[{index}].{field_name} must be a string",
+                    f"Provide items[{index}].{field_name} as a string.",
+                )
         if "constraints" in item and item["constraints"] is not None:
             require_string_list(item["constraints"], f"items[{index}].constraints")
 
@@ -1166,7 +1518,9 @@ def cmd_task_add(store: Store, args: argparse.Namespace) -> str | dict[str, Any]
         store.initialize()
         tasks = store.load_tasks()
         norm = lambda x: " ".join(x.casefold().split())
-        unfinished_by_title = {norm(task.title): task.id for task in tasks.values() if task.status != "done"}
+        unfinished_by_title = {
+            norm(task.title): task.id for task in tasks.values() if task.status != "done"
+        }
         requested_titles: set[str] = set()
         created: list[dict[str, str]] = []
 
@@ -1175,18 +1529,34 @@ def cmd_task_add(store: Store, args: argparse.Namespace) -> str | dict[str, Any]
             normalized_title = norm(title)
             if normalized_title in unfinished_by_title:
                 dup_id = unfinished_by_title[normalized_title]
-                raise ManagerError("DUPLICATE_TASK", f"unfinished task already exists as {dup_id}", f"Continue with {dup_id} instead of creating a duplicate.")
+                raise ManagerError(
+                    "DUPLICATE_TASK",
+                    f"unfinished task already exists as {dup_id}",
+                    f"Continue with {dup_id} instead of creating a duplicate.",
+                )
             if normalized_title in requested_titles:
-                raise ManagerError("DUPLICATE_TASK", f"items[{index}] duplicates another requested title", "Use one unique title per requested item.")
+                raise ManagerError(
+                    "DUPLICATE_TASK",
+                    f"items[{index}] duplicates another requested title",
+                    "Use one unique title per requested item.",
+                )
 
             parent = item.get("parent")
             if parent is not None:
                 if force_new_story:
-                    raise ManagerError("INVALID_PARENT", "parent is not allowed when adding multiple items", "Remove parent from batch items because each item becomes a new story.")
+                    raise ManagerError(
+                        "INVALID_PARENT",
+                        "parent is not allowed when adding multiple items",
+                        "Remove parent from batch items because each item becomes a new story.",
+                    )
                 parent = require_str(parent, "parent")
                 pt = tasks.get(parent)
                 if not pt or pt.status != "expand":
-                    raise ManagerError("INVALID_PARENT", f"parent {parent} must be in expand state", "Expand a valid parent before adding a child.")
+                    raise ManagerError(
+                        "INVALID_PARENT",
+                        f"parent {parent} must be in expand state",
+                        "Expand a valid parent before adding a child.",
+                    )
 
             tid = store.allocate_task_id(tasks, parent=parent, new_story=force_new_story)
             what = item.get("what", "").strip()
@@ -1237,7 +1607,11 @@ def cmd_task_add(store: Store, args: argparse.Namespace) -> str | dict[str, Any]
 
 def cmd_task_edit(store: Store, task_id: str | None) -> str:
     p = stdin_json()
-    ensure_keys(p, {"task", "title", "what", "done_when", "why", "how", "constraints"}, {"title", "what", "done_when"})
+    ensure_keys(
+        p,
+        {"task", "title", "what", "done_when", "why", "how", "constraints"},
+        {"title", "what", "done_when"},
+    )
     title = require_str(p["title"], "title")
     what = require_str(p["what"], "what")
     done_when = require_str(p["done_when"], "done_when")
@@ -1249,144 +1623,400 @@ def cmd_task_edit(store: Store, task_id: str | None) -> str:
         if not task:
             raise ManagerError("NO_TASK", "task was not found", "Provide an existing task ID.")
         if task.status not in {"draft", "planned"}:
-            raise ManagerError("INVALID_EDIT", f"task {task.id} cannot be edited from {task.status}", "Edit task definition only while it is draft or planned.")
+            raise ManagerError(
+                "INVALID_EDIT",
+                f"task {task.id} cannot be edited from {task.status}",
+                "Edit task definition only while it is draft or planned.",
+            )
         task.title = title
-        task.body = task_body(title, what, done_when, str(p.get("why", "")).strip(), str(p.get("how", "")).strip(), p.get("constraints") or [])
+        task.body = task_body(
+            title,
+            what,
+            done_when,
+            str(p.get("why", "")).strip(),
+            str(p.get("how", "")).strip(),
+            p.get("constraints") or [],
+        )
         if task.status == "draft":
             transition_task(task, "planned")
         task.updated = now()
-        store.save_task(task); store.rebuild_index()
+        store.save_task(task)
+        store.rebuild_index()
         return f"OK {task.id} {task.status}"
 
 
 def cmd_plan_task(store: Store, task_id: str | None) -> str:
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(task_id) if task_id else next((t for t in sorted(tasks.values(), key=lambda x:x.order_key) if t.status == "draft"), None)
-        if not task: raise ManagerError("NO_TASK", "no draft task is available", "Create a task with 'manager task add' or provide a draft task ID.")
-        if task.status != "draft": return f"OK {task.id} already {task.status}"
+        store.initialize()
+        tasks = store.load_tasks()
+        task = (
+            tasks.get(task_id)
+            if task_id
+            else next(
+                (
+                    t
+                    for t in sorted(tasks.values(), key=lambda x: x.order_key)
+                    if t.status == "draft"
+                ),
+                None,
+            )
+        )
+        if not task:
+            raise ManagerError(
+                "NO_TASK",
+                "no draft task is available",
+                "Create a task with 'manager task add' or provide a draft task ID.",
+            )
+        if task.status != "draft":
+            return f"OK {task.id} already {task.status}"
         what, done = get_field(task.body, "WHAT"), get_field(task.body, "DONE_WHEN")
         if not what or not done:
-            raise ManagerError("INVALID_TASK", f"task {task.id} cannot be planned without WHAT and DONE_WHEN", "Edit the task with both WHAT and DONE_WHEN, then rerun planning.")
-        transition_task(task, "planned"); task.updated = now(); store.save_task(task); store.rebuild_index(); return f"OK {task.id} planned"
+            raise ManagerError(
+                "INVALID_TASK",
+                f"task {task.id} cannot be planned without WHAT and DONE_WHEN",
+                "Edit the task with both WHAT and DONE_WHEN, then rerun planning.",
+            )
+        transition_task(task, "planned")
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return f"OK {task.id} planned"
 
 
 def cmd_task_expand(store: Store, task_id: str | None) -> str:
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(task_id) if task_id else selected_task(store, tasks)
-        if not task: raise ManagerError("NO_TASK", "no task is available to expand", "Run 'manager next' or provide a task ID.")
-        if task.status not in {"planned", "active"}: raise ManagerError("INVALID_TRANSITION", f"task {task.id} cannot enter expand from {task.status}", "Expand only a planned or active task.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(task_id) if task_id else selected_task(store, tasks)
+        if not task:
+            raise ManagerError(
+                "NO_TASK",
+                "no task is available to expand",
+                "Run 'manager next' or provide a task ID.",
+            )
+        if task.status not in {"planned", "active"}:
+            raise ManagerError(
+                "INVALID_TRANSITION",
+                f"task {task.id} cannot enter expand from {task.status}",
+                "Expand only a planned or active task.",
+            )
         if task.status == "active" and task.phase not in {"analysis", "planning"}:
-            raise ManagerError("INVALID_TRANSITION", f"active task {task.id} cannot enter expand from phase {task.phase}", "Decompose an active task only from its analysis or planning phase.")
+            raise ManagerError(
+                "INVALID_TRANSITION",
+                f"active task {task.id} cannot enter expand from phase {task.phase}",
+                "Decompose an active task only from its analysis or planning phase.",
+            )
         ensure_story_scope_before_transition(tasks, task, "expand")
-        transition_task(task, "expand"); task.phase = None; task.updated = now(); store.save_task(task); store.rebuild_index(); return f"OK {task.id} expand"
+        transition_task(task, "expand")
+        task.phase = None
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return f"OK {task.id} expand"
 
 
 def cmd_task_block(store: Store, task_id: str | None) -> str:
     reason = sys.stdin.read().strip()
-    if not reason: raise ManagerError("INVALID_BLOCKER", "blocker reason is required", "Provide a non-empty blocker reason on stdin.")
+    if not reason:
+        raise ManagerError(
+            "INVALID_BLOCKER",
+            "blocker reason is required",
+            "Provide a non-empty blocker reason on stdin.",
+        )
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(task_id) if task_id else selected_task(store, tasks)
-        if not task: raise ManagerError("NO_TASK", "no task is available to block", "Run 'manager next' or provide a task ID.")
-        if task.status not in {"draft", "planned", "active", "expand", "blocked"}: raise ManagerError("INVALID_TRANSITION", f"task {task.id} cannot be blocked from {task.status}", "Block only a non-terminal task.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(task_id) if task_id else selected_task(store, tasks)
+        if not task:
+            raise ManagerError(
+                "NO_TASK",
+                "no task is available to block",
+                "Run 'manager next' or provide a task ID.",
+            )
+        if task.status not in {"draft", "planned", "active", "expand", "blocked"}:
+            raise ManagerError(
+                "INVALID_TRANSITION",
+                f"task {task.id} cannot be blocked from {task.status}",
+                "Block only a non-terminal task.",
+            )
         ensure_story_scope_before_transition(tasks, task, "blocked")
         # A task-level block must also terminate the currently executable step
         # when the active phase owns one. Otherwise the task becomes inactive
         # while an implementation/validation/commit step remains executable,
         # violating the execution-state consistency invariant.
-        if task.status == "active" and task.current_step and task.phase in {"implementation", "step_validation", "step_commit"}:
+        if (
+            task.status == "active"
+            and task.current_step
+            and task.phase in {"implementation", "step_validation", "step_commit"}
+        ):
             step = next((s for s in store.load_steps(task.id) if s.id == task.current_step), None)
             if step is None:
-                raise ManagerError("CORRUPT_STATE", f"active task {task.id} references missing current step {task.current_step}", "Restore the canonical current step before blocking the task.")
+                raise ManagerError(
+                    "CORRUPT_STATE",
+                    f"active task {task.id} references missing current step {task.current_step}",
+                    "Restore the canonical current step before blocking the task.",
+                )
             transition_step(step, "blocked")
             step.result = reason
             step.updated = now()
             store.save_step(step)
-        transition_task(task, "blocked"); task.phase = None; task.blocker = reason; task.updated = now(); store.save_task(task); store.rebuild_index(); return f"OK {task.id} blocked"
+        transition_task(task, "blocked")
+        task.phase = None
+        task.blocker = reason
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return f"OK {task.id} blocked"
 
 
 def cmd_task_unblock(store: Store, task_id: str | None) -> str:
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(task_id) if task_id else next((t for t in sorted(tasks.values(), key=lambda x:x.order_key) if t.status == "blocked"), None)
-        if not task: raise ManagerError("NO_TASK", "no blocked task is available", "Provide a blocked task ID or create a blocked task.")
-        if task.status != "blocked": raise ManagerError("INVALID_TRANSITION", f"task {task.id} is not blocked", "Unblock only a blocked task.")
-        transition_task(task, "planned"); task.phase = None; task.blocker = ""; task.updated = now(); store.save_task(task); store.rebuild_index(); return f"OK {task.id} planned"
+        store.initialize()
+        tasks = store.load_tasks()
+        task = (
+            tasks.get(task_id)
+            if task_id
+            else next(
+                (
+                    t
+                    for t in sorted(tasks.values(), key=lambda x: x.order_key)
+                    if t.status == "blocked"
+                ),
+                None,
+            )
+        )
+        if not task:
+            raise ManagerError(
+                "NO_TASK",
+                "no blocked task is available",
+                "Provide a blocked task ID or create a blocked task.",
+            )
+        if task.status != "blocked":
+            raise ManagerError(
+                "INVALID_TRANSITION",
+                f"task {task.id} is not blocked",
+                "Unblock only a blocked task.",
+            )
+        transition_task(task, "planned")
+        task.phase = None
+        task.blocker = ""
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return f"OK {task.id} planned"
 
 
 def cmd_finding_add(store: Store) -> str:
-    p = stdin_json(); ensure_keys(p, {"task", "agent_id", "question", "finding", "evidence", "impact", "confidence", "submission_token"}, {"agent_id", "question", "finding", "evidence", "impact", "confidence"})
-    for f in ("question", "finding", "impact", "confidence"): require_str(p[f], f)
-    ev = require_string_list(p["evidence"], "evidence", True); token = optional_token(p.get("submission_token"))
+    p = stdin_json()
+    ensure_keys(
+        p,
+        {
+            "task",
+            "agent_id",
+            "question",
+            "finding",
+            "evidence",
+            "impact",
+            "confidence",
+            "submission_token",
+        },
+        {"agent_id", "question", "finding", "evidence", "impact", "confidence"},
+    )
+    for f in ("question", "finding", "impact", "confidence"):
+        require_str(p[f], f)
+    ev = require_string_list(p["evidence"], "evidence", True)
+    token = optional_token(p.get("submission_token"))
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
-        if not task or task.status != "active" or task.phase != "analysis": raise ManagerError("INVALID_PHASE", "findings can only be added during analysis", "Run 'manager next' and follow the current analysis envelope.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
+        if not task or task.status != "active" or task.phase != "analysis":
+            raise ManagerError(
+                "INVALID_PHASE",
+                "findings can only be added during analysis",
+                "Run 'manager next' and follow the current analysis envelope.",
+            )
         require_payload_agent_id(p, task)
         ev = enrich_file_evidence_list(store, ev)
         if token:
             existing = store.load_submissions().get(token)
-            if existing: return store.remember_submission(token, p, existing.response)
+            if existing:
+                return store.remember_submission(token, p, existing.response)
         fid = f"FINDING-{store.next_record_number(task.id, 'FINDING'):04d}"
         path = store.knowledge_dir / f"{task.id}-analysis.md"
-        fm = {"type":"analysis","format_version":FORMAT_VERSION,"id":f"{task.id}-ANALYSIS","task_id":task.id,"created":now(),"updated":now()}
-        section = f"## {fid}\n\nQUESTION:\n{p['question'].strip()}\n\nFINDING:\n{p['finding'].strip()}\n\nEVIDENCE:\n" + "\n".join(f"- {x}" for x in ev) + f"\n\nIMPACT:\n{p['impact'].strip()}\n\nCONFIDENCE:\n{p['confidence'].strip()}\n"
-        store.append_record(path, fm, f"# Analysis for {task.id}\n\n" + section if not path.exists() else section)
-        task.analysis = f"../knowledge/{path.name}"; task.updated = now(); store.save_task(task); store.rebuild_index()
+        fm = {
+            "type": "analysis",
+            "format_version": FORMAT_VERSION,
+            "id": f"{task.id}-ANALYSIS",
+            "task_id": task.id,
+            "created": now(),
+            "updated": now(),
+        }
+        section = (
+            f"## {fid}\n\nQUESTION:\n{p['question'].strip()}\n\nFINDING:\n{p['finding'].strip()}\n\nEVIDENCE:\n"
+            + "\n".join(f"- {x}" for x in ev)
+            + f"\n\nIMPACT:\n{p['impact'].strip()}\n\nCONFIDENCE:\n{p['confidence'].strip()}\n"
+        )
+        store.append_record(
+            path, fm, f"# Analysis for {task.id}\n\n" + section if not path.exists() else section
+        )
+        task.analysis = f"../knowledge/{path.name}"
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
         return store.remember_submission(token, p, fid) if token else fid
 
 
 def cmd_decision_propose(store: Store) -> str:
-    p = stdin_json(); ensure_keys(p, {"task", "agent_id", "decision","rationale","alternatives","consequences","evidence","supersedes","submission_token"}, {"agent_id", "decision","rationale","alternatives","consequences","evidence"})
-    for f in ("decision", "rationale"): require_str(p[f], f)
-    alts = require_list(p["alternatives"], "alternatives"); cons = require_list(p["consequences"], "consequences", True); evidence = require_list(p["evidence"], "evidence", True); token = optional_token(p.get("submission_token"))
+    p = stdin_json()
+    ensure_keys(
+        p,
+        {
+            "task",
+            "agent_id",
+            "decision",
+            "rationale",
+            "alternatives",
+            "consequences",
+            "evidence",
+            "supersedes",
+            "submission_token",
+        },
+        {"agent_id", "decision", "rationale", "alternatives", "consequences", "evidence"},
+    )
+    for f in ("decision", "rationale"):
+        require_str(p[f], f)
+    alts = require_list(p["alternatives"], "alternatives")
+    cons = require_list(p["consequences"], "consequences", True)
+    evidence = require_list(p["evidence"], "evidence", True)
+    token = optional_token(p.get("submission_token"))
     for a in alts:
-        if not isinstance(a, dict) or set(a) != {"option", "reason_rejected"}: raise ManagerError("INVALID_SCHEMA", "each alternative must contain option and reason_rejected", "Resubmit alternatives using the exact decision schema.")
+        if not isinstance(a, dict) or set(a) != {"option", "reason_rejected"}:
+            raise ManagerError(
+                "INVALID_SCHEMA",
+                "each alternative must contain option and reason_rejected",
+                "Resubmit alternatives using the exact decision schema.",
+            )
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
-        if not task or task.status != "active" or task.phase != "analysis": raise ManagerError("INVALID_PHASE", "decisions can only be proposed during analysis", "Run 'manager next' and follow the current analysis envelope.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
+        if not task or task.status != "active" or task.phase != "analysis":
+            raise ManagerError(
+                "INVALID_PHASE",
+                "decisions can only be proposed during analysis",
+                "Run 'manager next' and follow the current analysis envelope.",
+            )
         require_payload_agent_id(p, task)
         evidence = enrich_file_evidence_list(store, [str(x) for x in evidence])
-        if token and token in store.load_submissions(): return store.remember_submission(token, p, store.load_submissions()[token].response)
-        did = f"DEC-{store.next_record_number(task.id, 'DEC'):04d}"; path = store.knowledge_dir / f"{task.id}-decisions.md"; fm={"type":"decisions","format_version":FORMAT_VERSION,"id":f"{task.id}-DECISIONS","task_id":task.id,"created":now(),"updated":now()}
+        if token and token in store.load_submissions():
+            return store.remember_submission(token, p, store.load_submissions()[token].response)
+        did = f"DEC-{store.next_record_number(task.id, 'DEC'):04d}"
+        path = store.knowledge_dir / f"{task.id}-decisions.md"
+        fm = {
+            "type": "decisions",
+            "format_version": FORMAT_VERSION,
+            "id": f"{task.id}-DECISIONS",
+            "task_id": task.id,
+            "created": now(),
+            "updated": now(),
+        }
         supersedes = p.get("supersedes")
         if supersedes is not None:
             supersedes = require_str(supersedes, "supersedes")
             if not supersedes.startswith("DEC-"):
-                raise ManagerError("INVALID_DECISION", "supersedes must reference a decision ID", "Reference an existing accepted DEC-#### decision.")
+                raise ManagerError(
+                    "INVALID_DECISION",
+                    "supersedes must reference a decision ID",
+                    "Reference an existing accepted DEC-#### decision.",
+                )
             existing_text = path.read_text(encoding="utf-8") if path.exists() else ""
             if f"## {supersedes}\n" not in existing_text:
-                raise ManagerError("MISSING_DECISION", f"decision {supersedes} does not exist", "Supersede only an existing accepted decision.")
+                raise ManagerError(
+                    "MISSING_DECISION",
+                    f"decision {supersedes} does not exist",
+                    "Supersede only an existing accepted decision.",
+                )
             old_chunk = existing_text.split(f"## {supersedes}\n", 1)[1].split("\n## ", 1)[0]
-            resolutions = re.findall(r"## DECISION-RESOLUTION-" + re.escape(supersedes) + r"\n\nDECISION_ID:\n" + re.escape(supersedes) + r"\n\nSTATUS:\n([^\n]+)", existing_text)
-            latest_status = resolutions[-1].strip() if resolutions else ("proposed" if "STATUS:\nproposed" in old_chunk else "")
+            resolutions = re.findall(
+                r"## DECISION-RESOLUTION-"
+                + re.escape(supersedes)
+                + r"\n\nDECISION_ID:\n"
+                + re.escape(supersedes)
+                + r"\n\nSTATUS:\n([^\n]+)",
+                existing_text,
+            )
+            latest_status = (
+                resolutions[-1].strip()
+                if resolutions
+                else ("proposed" if "STATUS:\nproposed" in old_chunk else "")
+            )
             if latest_status != "accepted":
-                raise ManagerError("INVALID_DECISION", f"decision {supersedes} is not accepted", "Only an accepted decision may be superseded.")
-        section = f"## {did}\n\nSTATUS:\nproposed\n\nDECISION:\n{p['decision']}\n\nRATIONALE:\n{p['rationale']}\n\nALTERNATIVES:\n" + "\n".join(f"- {a['option']}: {a['reason_rejected']}" for a in alts) + "\n\nCONSEQUENCES:\n" + "\n".join(f"- {x}" for x in cons) + "\n\nEVIDENCE:\n" + "\n".join(f"- {x}" for x in evidence) + f"\n\nSUPERSEDES:\n{supersedes or 'None'}\n"
+                raise ManagerError(
+                    "INVALID_DECISION",
+                    f"decision {supersedes} is not accepted",
+                    "Only an accepted decision may be superseded.",
+                )
+        section = (
+            f"## {did}\n\nSTATUS:\nproposed\n\nDECISION:\n{p['decision']}\n\nRATIONALE:\n{p['rationale']}\n\nALTERNATIVES:\n"
+            + "\n".join(f"- {a['option']}: {a['reason_rejected']}" for a in alts)
+            + "\n\nCONSEQUENCES:\n"
+            + "\n".join(f"- {x}" for x in cons)
+            + "\n\nEVIDENCE:\n"
+            + "\n".join(f"- {x}" for x in evidence)
+            + f"\n\nSUPERSEDES:\n{supersedes or 'None'}\n"
+        )
         # A superseding decision is only a proposal at this point. The prior
         # accepted decision remains accepted until the replacement itself is
         # accepted. This preserves the specified decision lifecycle:
         # proposed -> accepted|rejected and accepted -> superseded.
-        store.append_record(path, fm, f"# Decisions for {task.id}\n\n" + section if not path.exists() else section)
-        task.decisions=f"../knowledge/{path.name}"; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,did) if token else did
+        store.append_record(
+            path, fm, f"# Decisions for {task.id}\n\n" + section if not path.exists() else section
+        )
+        task.decisions = f"../knowledge/{path.name}"
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return store.remember_submission(token, p, did) if token else did
 
 
 def cmd_evidence_add(store: Store) -> str:
     p = stdin_json()
-    ensure_keys(p, {"task", "agent_id", "type", "fields", "submission_token"}, {"agent_id", "type", "fields"})
+    ensure_keys(
+        p,
+        {"task", "agent_id", "type", "fields", "submission_token"},
+        {"agent_id", "type", "fields"},
+    )
     typ = require_str(p["type"], "type")
     fields = p["fields"]
     if not isinstance(fields, dict) or not fields:
-        raise ManagerError("INVALID_SCHEMA", "fields must be a non-empty object", "Submit evidence fields as a non-empty JSON object.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "fields must be a non-empty object",
+            "Submit evidence fields as a non-empty JSON object.",
+        )
     token = optional_token(p.get("submission_token"))
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
         if not task:
-            raise ManagerError("NO_TASK", "task was not found", "Provide an existing task ID or run 'manager next'.")
+            raise ManagerError(
+                "NO_TASK",
+                "task was not found",
+                "Provide an existing task ID or run 'manager next'.",
+            )
         require_payload_agent_id(p, task)
         if token and token in store.load_submissions():
             return store.remember_submission(token, p, store.load_submissions()[token].response)
         safe_fields = {}
         for key, value in fields.items():
             if not isinstance(key, str) or not key.strip():
-                raise ManagerError("INVALID_SCHEMA", "evidence field names must be non-empty strings", "Use simple string field names.")
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "evidence field names must be non-empty strings",
+                    "Use simple string field names.",
+                )
             if isinstance(value, list) and all(isinstance(item, str) for item in value):
                 value = enrich_file_evidence_list(store, [str(item) for item in value])
             text = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
@@ -1404,59 +2034,163 @@ def validate_refs_for_plan(task: Task, store: Store, refs: list[str]) -> None:
         elif rid.startswith("DEC-"):
             p = store.knowledge_dir / f"{task.id}-decisions.md"
         else:
-            raise ManagerError("UNREACHABLE_CONTEXT", f"unsupported knowledge reference {ref}", "Reference only accepted FINDING or DEC records for planning.")
+            raise ManagerError(
+                "UNREACHABLE_CONTEXT",
+                f"unsupported knowledge reference {ref}",
+                "Reference only accepted FINDING or DEC records for planning.",
+            )
         if not p.exists() or ("## " + rid) not in p.read_text(encoding="utf-8"):
-            raise ManagerError("UNREACHABLE_CONTEXT", f"knowledge reference {ref} does not exist", "Use only IDs returned by accepted analysis records.")
+            raise ManagerError(
+                "UNREACHABLE_CONTEXT",
+                f"knowledge reference {ref} does not exist",
+                "Use only IDs returned by accepted analysis records.",
+            )
         if rid.startswith("DEC-"):
             record = resolve_record(p, rid, "decision")
             if "STATUS:\naccepted" not in record["content"]:
-                raise ManagerError("UNRESOLVED_DECISION", f"decision {rid} is not accepted", "Resolve the decision before using it in a plan.")
+                raise ManagerError(
+                    "UNRESOLVED_DECISION",
+                    f"decision {rid} is not accepted",
+                    "Resolve the decision before using it in a plan.",
+                )
 
 
 def cmd_plan_submit(store: Store, task: Task, p: dict[str, Any]) -> str:
-    ensure_keys(p, {"agent_id", "steps","final_validation","submission_token"}, {"agent_id", "steps","final_validation"})
+    ensure_keys(
+        p,
+        {"agent_id", "steps", "final_validation", "submission_token"},
+        {"agent_id", "steps", "final_validation"},
+    )
     require_payload_agent_id(p, task)
-    raw_steps = require_list(p["steps"], "steps", True); final_validation = require_list(p["final_validation"], "final_validation", True)
-    if any(not isinstance(x, dict) for x in raw_steps): raise ManagerError("INVALID_SCHEMA", "every step must be an object", "Resubmit a plan containing only step objects.")
+    raw_steps = require_list(p["steps"], "steps", True)
+    final_validation = require_list(p["final_validation"], "final_validation", True)
+    if any(not isinstance(x, dict) for x in raw_steps):
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "every step must be an object",
+            "Resubmit a plan containing only step objects.",
+        )
     existing = store.load_steps(task.id)
-    if existing and not all(step.status in {"done", "failed", "blocked"} for step in existing): raise ManagerError("PLAN_EXISTS", f"task {task.id} already has an active plan", "Continue with the existing plan instead of replacing it.")
+    if existing and not all(step.status in {"done", "failed", "blocked"} for step in existing):
+        raise ManagerError(
+            "PLAN_EXISTS",
+            f"task {task.id} already has an active plan",
+            "Continue with the existing plan instead of replacing it.",
+        )
     titles: set[str] = set()
     actions: set[str] = set()
     for i, x in enumerate(raw_steps, 1):
-        allowed={"title","action","accept","load","may_edit","validation","commit_policy","commit_type"}
+        allowed = {
+            "title",
+            "action",
+            "accept",
+            "load",
+            "may_edit",
+            "validation",
+            "commit_policy",
+            "commit_type",
+        }
         ensure_keys(x, allowed, allowed)
-        title=require_str(x["title"],"step.title"); action=require_str(x["action"],"step.action")
-        if title.casefold() in titles: raise ManagerError("INVALID_PLAN", f"duplicate step title at sequence {i}", "Each step must have a unique bounded action.")
-        titles.add(title.casefold()); accept=require_list(x["accept"],"step.accept",True); load=require_list(x["load"],"step.load"); may_edit=require_list(x["may_edit"],"step.may_edit"); validation=require_list(x["validation"],"step.validation",True)
-        action_key=" ".join(action.casefold().split())
-        if action_key in actions: raise ManagerError("INVALID_PLAN", f"duplicate action at sequence {i}", "Each implementation step must perform a distinct bounded action.")
+        title = require_str(x["title"], "step.title")
+        action = require_str(x["action"], "step.action")
+        if title.casefold() in titles:
+            raise ManagerError(
+                "INVALID_PLAN",
+                f"duplicate step title at sequence {i}",
+                "Each step must have a unique bounded action.",
+            )
+        titles.add(title.casefold())
+        accept = require_list(x["accept"], "step.accept", True)
+        load = require_list(x["load"], "step.load")
+        may_edit = require_list(x["may_edit"], "step.may_edit")
+        validation = require_list(x["validation"], "step.validation", True)
+        action_key = " ".join(action.casefold().split())
+        if action_key in actions:
+            raise ManagerError(
+                "INVALID_PLAN",
+                f"duplicate action at sequence {i}",
+                "Each implementation step must perform a distinct bounded action.",
+            )
         actions.add(action_key)
-        if x["commit_policy"] not in {"required","optional","disabled"}: raise ManagerError("INVALID_PLAN", "commit_policy must be required, optional, or disabled", "Use one of the supported commit policies.")
-        if x["commit_type"] not in {"chore","fix","refactor","test","docs"}: raise ManagerError("INVALID_PLAN", "unsupported commit_type", "Use chore, fix, refactor, test, or docs.")
+        if x["commit_policy"] not in {"required", "optional", "disabled"}:
+            raise ManagerError(
+                "INVALID_PLAN",
+                "commit_policy must be required, optional, or disabled",
+                "Use one of the supported commit policies.",
+            )
+        if x["commit_type"] not in {"chore", "fix", "refactor", "test", "docs"}:
+            raise ManagerError(
+                "INVALID_PLAN",
+                "unsupported commit_type",
+                "Use chore, fix, refactor, test, or docs.",
+            )
         for path in may_edit:
-            try: rel_safe(path)
-            except ValueError as exc: raise ManagerError("INVALID_PATH", str(exc), "Remove traversal, absolute paths, and .manager paths from MAY_EDIT.")
+            try:
+                rel_safe(path)
+            except ValueError as exc:
+                raise ManagerError(
+                    "INVALID_PATH",
+                    str(exc),
+                    "Remove traversal, absolute paths, and .manager paths from MAY_EDIT.",
+                )
             if path == ".manager" or path.startswith(".manager/"):
-                raise ManagerError("INVALID_PATH", f"step {i} may not edit .manager", "Remove .manager paths from MAY_EDIT.")
+                raise ManagerError(
+                    "INVALID_PATH",
+                    f"step {i} may not edit .manager",
+                    "Remove .manager paths from MAY_EDIT.",
+                )
         validation = [validate_command(v, "step.validation") for v in validation]
         if not validation:
-            raise ManagerError("INVALID_PLAN", f"step {i} has no validation command", "Add at least one exact validation command to every implementation step.")
+            raise ManagerError(
+                "INVALID_PLAN",
+                f"step {i} has no validation command",
+                "Add at least one exact validation command to every implementation step.",
+            )
         final_validation = [validate_command(v, "final_validation") for v in final_validation]
         validate_refs_for_plan(task, store, load)
     with store.lock():
         # Recheck under lock because planning is a mutation.
-        store.initialize(); tasks=store.load_tasks(); task=tasks[task.id]
-        if task.phase != "planning": raise ManagerError("INVALID_PHASE", "task is no longer in planning", "Run 'manager next' to obtain the current phase.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks[task.id]
+        if task.phase != "planning":
+            raise ManagerError(
+                "INVALID_PHASE",
+                "task is no longer in planning",
+                "Run 'manager next' to obtain the current phase.",
+            )
         if existing:
             archive_existing_steps(store, task.id, existing)
         # Step identifiers are durable record identities, not plan-local
         # sequence numbers. Replanning must never reuse archived STEP IDs.
         first_step_number = store.next_step_number(task.id)
-        for i,x in enumerate(raw_steps,1):
+        for i, x in enumerate(raw_steps, 1):
             step_id = f"STEP-{first_step_number + i - 1:04d}"
-            step=Step(step_id,task.id,i,"ready" if i==1 else "queued",PHASE_ROLE["implementation"],str(x["title"]).strip(),str(x["action"]).strip(),list(map(str,x["accept"])),list(map(str,x["load"])),list(map(str,x["may_edit"])),list(map(str,x["validation"])),str(x["commit_policy"]),str(x["commit_type"]),now(),now())
+            step = Step(
+                step_id,
+                task.id,
+                i,
+                "ready" if i == 1 else "queued",
+                PHASE_ROLE["implementation"],
+                str(x["title"]).strip(),
+                str(x["action"]).strip(),
+                list(map(str, x["accept"])),
+                list(map(str, x["load"])),
+                list(map(str, x["may_edit"])),
+                list(map(str, x["validation"])),
+                str(x["commit_policy"]),
+                str(x["commit_type"]),
+                now(),
+                now(),
+            )
             store.save_step(step)
-        task.final_validation=list(map(str,final_validation)); task.current_step=f"STEP-{first_step_number:04d}"; task.phase="implementation"; task.updated=now(); store.save_task(task); store.rebuild_index(); return f"OK {task.id} plan accepted"
+        task.final_validation = list(map(str, final_validation))
+        task.current_step = f"STEP-{first_step_number:04d}"
+        task.phase = "implementation"
+        task.updated = now()
+        store.save_task(task)
+        store.rebuild_index()
+        return f"OK {task.id} plan accepted"
 
 
 def archive_existing_steps(store: Store, task_id: str, existing_steps: list[Step]) -> None:
@@ -1483,46 +2217,81 @@ def archive_existing_steps(store: Store, task_id: str, existing_steps: list[Step
 
 
 def append_evidence(store: Store, task: Task, event_type: str, fields: dict[str, Any]) -> str:
-    eid=f"EVT-{store.next_record_number(task.id,'EVT'):04d}"; path=store.evidence_dir/f"{task.id}-evidence.md"; fm={"type":"evidence","format_version":FORMAT_VERSION,"id":f"{task.id}-EVIDENCE","task_id":task.id,"created":now(),"updated":now()}
-    section=f"## {eid}\n\nTYPE:\n{event_type}\n\nRECORDED_AT:\n{now()}\n"+"\n".join(f"\n{k.upper()}:\n{v}" for k,v in fields.items())+"\n"
-    store.append_record(path,fm,f"# Evidence for {task.id}\n\n"+section if not path.exists() else section); task.evidence=f"../evidence/{path.name}"; task.updated=now(); store.save_task(task); return eid
+    eid = f"EVT-{store.next_record_number(task.id, 'EVT'):04d}"
+    path = store.evidence_dir / f"{task.id}-evidence.md"
+    fm = {
+        "type": "evidence",
+        "format_version": FORMAT_VERSION,
+        "id": f"{task.id}-EVIDENCE",
+        "task_id": task.id,
+        "created": now(),
+        "updated": now(),
+    }
+    section = (
+        f"## {eid}\n\nTYPE:\n{event_type}\n\nRECORDED_AT:\n{now()}\n"
+        + "\n".join(f"\n{k.upper()}:\n{v}" for k, v in fields.items())
+        + "\n"
+    )
+    store.append_record(
+        path, fm, f"# Evidence for {task.id}\n\n" + section if not path.exists() else section
+    )
+    task.evidence = f"../evidence/{path.name}"
+    task.updated = now()
+    store.save_task(task)
+    return eid
 
 
 def verify_changed_files(store: Store, task: Task, step: Step, changed: list[str]) -> None:
-    declared=[]
-    for p in changed: declared.append(rel_safe(p))
-    allowed=set(step.may_edit)
-    bad=sorted(set(declared)-allowed)
-    if bad: raise ManagerError("BOUNDARY_VIOLATION", "reported changed files outside the step boundary: " + ", ".join(bad), "Revert or exclude unauthorized changes and resubmit only files permitted by the current step.")
+    declared = []
+    for p in changed:
+        declared.append(rel_safe(p))
+    allowed = set(step.may_edit)
+    bad = sorted(set(declared) - allowed)
+    if bad:
+        raise ManagerError(
+            "BOUNDARY_VIOLATION",
+            "reported changed files outside the step boundary: " + ", ".join(bad),
+            "Revert or exclude unauthorized changes and resubmit only files permitted by the current step.",
+        )
     if store.git_info()[0]:
-        current=set(store.git_status_paths())
-        missing=[p for p in declared if not (store.root / p).exists() and p not in current]
+        current = set(store.git_status_paths())
+        missing = [p for p in declared if not (store.root / p).exists() and p not in current]
         if missing:
-            raise ManagerError("MISSING_CHANGED_FILE", "reported changed files do not exist or are not represented by the Git worktree: " + ", ".join(missing), "Ensure the implementation produced the reported files or report the exact Git-tracked deletion path before resubmitting.")
+            raise ManagerError(
+                "MISSING_CHANGED_FILE",
+                "reported changed files do not exist or are not represented by the Git worktree: "
+                + ", ".join(missing),
+                "Ensure the implementation produced the reported files or report the exact Git-tracked deletion path before resubmitting.",
+            )
     else:
-        missing=[p for p in declared if not (store.root / p).exists()]
+        missing = [p for p in declared if not (store.root / p).exists()]
         if missing:
-            raise ManagerError("MISSING_CHANGED_FILE", "reported changed files do not exist: " + ", ".join(missing), "Ensure the implementation produced the reported files before resubmitting.")
-        current=set()
+            raise ManagerError(
+                "MISSING_CHANGED_FILE",
+                "reported changed files do not exist: " + ", ".join(missing),
+                "Ensure the implementation produced the reported files before resubmitting.",
+            )
+        current = set()
     if store.git_info()[0]:
-        base=set(task.git_base)
-        new=current-base
+        base = set(task.git_base)
+        new = current - base
         # A submitted changed_files list must describe the actual current Git
         # worktree delta, not merely paths that happen to exist. This prevents a
         # model from claiming a reverted/no-op file as changed and makes the
         # implementation-result record auditable against Git. Tracked deletions
         # remain valid because Git status contains their path even though the
         # filesystem path no longer exists.
-        missing_from_diff=sorted(set(declared)-new)
+        missing_from_diff = sorted(set(declared) - new)
         if missing_from_diff:
             raise ManagerError(
                 "CHANGED_FILE_NOT_IN_DIFF",
-                "reported changed files are not present in the current Git worktree diff: " + ", ".join(missing_from_diff),
+                "reported changed files are not present in the current Git worktree diff: "
+                + ", ".join(missing_from_diff),
                 "Report only files actually changed by the current implementation, then resubmit the exact changed_files list.",
             )
         # Managed state changes are not application changes, but must never be
         # part of step changes.
-        undeclared=sorted(new-set(declared))
+        undeclared = sorted(new - set(declared))
         if undeclared:
             raise ManagerError(
                 "UNDECLARED_CHANGES",
@@ -1542,7 +2311,11 @@ def recover_step_commit(store: Store, task: Task, step: Step) -> str | None:
         if store.git_head_subject() != step.commit_message:
             return None
         cid = store.git_head()
-        if step.commit_base_head and store.git(["rev-parse", f"{cid}^"], check=False).stdout.strip() != step.commit_base_head:
+        if (
+            step.commit_base_head
+            and store.git(["rev-parse", f"{cid}^"], check=False).stdout.strip()
+            != step.commit_base_head
+        ):
             return None
         paths = set(store.git_commit_paths())
         expected = set(step.may_edit)
@@ -1554,7 +2327,12 @@ def recover_step_commit(store: Store, task: Task, step: Step) -> str | None:
     transition_step(step, "done")
     step.updated = now()
     store.save_step(step)
-    append_evidence(store, task, "commit_recovered", {"STEP": step.id, "COMMIT_ID": cid, "MESSAGE": step.commit_message})
+    append_evidence(
+        store,
+        task,
+        "commit_recovered",
+        {"STEP": step.id, "COMMIT_ID": cid, "MESSAGE": step.commit_message},
+    )
     advance_after_step(store, task, step)
     return cid
 
@@ -1566,7 +2344,11 @@ def recover_final_commit(store: Store, task: Task) -> str | None:
         if store.git_head_subject() != task.final_commit_message:
             return None
         cid = store.git_head()
-        if task.git_base_head and store.git(["rev-parse", f"{cid}^"], check=False).stdout.strip() != task.git_base_head:
+        if (
+            task.git_base_head
+            and store.git(["rev-parse", f"{cid}^"], check=False).stdout.strip()
+            != task.git_base_head
+        ):
             return None
         steps = store.load_steps(task.id)
         allowed = {path for step in steps for path in step.may_edit}
@@ -1581,57 +2363,162 @@ def recover_final_commit(store: Store, task: Task) -> str | None:
     task.current_step = None
     task.updated = now()
     store.save_task(task)
-    append_evidence(store, task, "final_commit_recovered", {"COMMIT_ID": cid, "MESSAGE": task.final_commit_message})
+    append_evidence(
+        store,
+        task,
+        "final_commit_recovered",
+        {"COMMIT_ID": cid, "MESSAGE": task.final_commit_message},
+    )
     store.rebuild_index()
     return cid
 
 
 def cmd_submit(store: Store) -> str:
-    p=stdin_json(); token=optional_token(p.get("submission_token"))
+    p = stdin_json()
+    token = optional_token(p.get("submission_token"))
     with store.lock():
-        store.initialize(); tasks=store.load_tasks(); task=selected_task(store,tasks)
-        if not task or task.status != "active": raise ManagerError("NO_TASK", "no active task is available", "Run 'manager status --compact'. If task is NO_TASK, run 'manager task add' with payload from schema_path, then run 'manager next'.")
+        store.initialize()
+        tasks = store.load_tasks()
+        task = selected_task(store, tasks)
+        if not task or task.status != "active":
+            raise ManagerError(
+                "NO_TASK",
+                "no active task is available",
+                "Run 'manager status --compact'. If task is NO_TASK, run 'manager task add' with payload from schema_path, then run 'manager next'.",
+            )
         require_payload_agent_id(p, task)
-        if token and token in store.load_submissions(): return store.remember_submission(token,p,store.load_submissions()[token].response)
-        phase=task.phase
-        if phase=="analysis":
-            ensure_keys(p,{"agent_id","outcome","summary","finding_ids","decision_ids","atomic","decomposition_reason","blocker","evidence","recovery_condition","submission_token"},{"agent_id","outcome","summary","finding_ids","decision_ids","atomic"}); require_str(p["summary"],"summary")
-            if p["outcome"]=="blocked":
-                blocker=require_str(p.get("blocker"),"blocker"); evidence=require_list(p.get("evidence"),"evidence",True); recovery=require_str(p.get("recovery_condition"),"recovery_condition");
-                transition_task(task, "blocked"); task.phase=None; task.blocker=blocker; task.updated=now(); store.save_task(task); append_evidence(store,task,"blocked",{"BLOCKER":blocker,"EVIDENCE":"\n".join(map(str,evidence)),"RECOVERY_CONDITION":recovery}); store.rebuild_index(); return store.remember_submission(token,p,"BLOCKED") if token else "BLOCKED"
-            if p["outcome"]!="completed" or not isinstance(p["atomic"],bool): raise ManagerError("INVALID_SCHEMA","analysis outcome or atomic value is invalid","Submit completed with boolean atomic, or blocked with a blocker.")
+        if token and token in store.load_submissions():
+            return store.remember_submission(token, p, store.load_submissions()[token].response)
+        phase = task.phase
+        if phase == "analysis":
+            ensure_keys(
+                p,
+                {
+                    "agent_id",
+                    "outcome",
+                    "summary",
+                    "finding_ids",
+                    "decision_ids",
+                    "atomic",
+                    "decomposition_reason",
+                    "blocker",
+                    "evidence",
+                    "recovery_condition",
+                    "submission_token",
+                },
+                {"agent_id", "outcome", "summary", "finding_ids", "decision_ids", "atomic"},
+            )
+            require_str(p["summary"], "summary")
+            if p["outcome"] == "blocked":
+                blocker = require_str(p.get("blocker"), "blocker")
+                evidence = require_list(p.get("evidence"), "evidence", True)
+                recovery = require_str(p.get("recovery_condition"), "recovery_condition")
+                transition_task(task, "blocked")
+                task.phase = None
+                task.blocker = blocker
+                task.updated = now()
+                store.save_task(task)
+                append_evidence(
+                    store,
+                    task,
+                    "blocked",
+                    {
+                        "BLOCKER": blocker,
+                        "EVIDENCE": "\n".join(map(str, evidence)),
+                        "RECOVERY_CONDITION": recovery,
+                    },
+                )
+                store.rebuild_index()
+                return store.remember_submission(token, p, "BLOCKED") if token else "BLOCKED"
+            if p["outcome"] != "completed" or not isinstance(p["atomic"], bool):
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "analysis outcome or atomic value is invalid",
+                    "Submit completed with boolean atomic, or blocked with a blocker.",
+                )
             finding_ids = require_string_list(p["finding_ids"], "finding_ids")
             decision_ids = require_string_list(p["decision_ids"], "decision_ids")
             for rid in finding_ids + decision_ids:
                 validate_refs_for_plan(task, store, [rid])
             if not p["atomic"]:
-                reason=require_str(p.get("decomposition_reason"),"decomposition_reason"); transition_task(task, "expand"); task.phase=None; task.blocker=reason; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,"OK DECOMPOSITION_REQUIRED") if token else "OK DECOMPOSITION_REQUIRED"
-            task.phase="planning"; task.blocker=""; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,"OK planning") if token else "OK planning"
-        if phase=="planning":
-            ensure_keys(p, {"agent_id", "steps", "final_validation", "submission_token"}, {"agent_id", "steps", "final_validation"})
+                reason = require_str(p.get("decomposition_reason"), "decomposition_reason")
+                transition_task(task, "expand")
+                task.phase = None
+                task.blocker = reason
+                task.updated = now()
+                store.save_task(task)
+                store.rebuild_index()
+                return (
+                    store.remember_submission(token, p, "OK DECOMPOSITION_REQUIRED")
+                    if token
+                    else "OK DECOMPOSITION_REQUIRED"
+                )
+            task.phase = "planning"
+            task.blocker = ""
+            task.updated = now()
+            store.save_task(task)
+            store.rebuild_index()
+            return store.remember_submission(token, p, "OK planning") if token else "OK planning"
+        if phase == "planning":
+            ensure_keys(
+                p,
+                {"agent_id", "steps", "final_validation", "submission_token"},
+                {"agent_id", "steps", "final_validation"},
+            )
             raw_steps = require_list(p["steps"], "steps", True)
             final_validation = require_string_list(p["final_validation"], "final_validation", True)
             existing = store.load_steps(task.id)
-            if existing and not all(step.status in {"done", "failed", "blocked"} for step in existing):
-                raise ManagerError("PLAN_EXISTS", f"task {task.id} already has an active plan", "Continue with the existing plan instead of replacing it.")
+            if existing and not all(
+                step.status in {"done", "failed", "blocked"} for step in existing
+            ):
+                raise ManagerError(
+                    "PLAN_EXISTS",
+                    f"task {task.id} already has an active plan",
+                    "Continue with the existing plan instead of replacing it.",
+                )
             titles: set[str] = set()
             actions: set[str] = set()
             normalized_steps = []
             for i, x in enumerate(raw_steps, 1):
                 if not isinstance(x, dict):
-                    raise ManagerError("INVALID_SCHEMA", "every step must be an object", "Resubmit a plan containing only step objects.")
-                allowed = {"title", "action", "accept", "load", "may_edit", "validation", "commit_policy", "commit_type"}
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "every step must be an object",
+                        "Resubmit a plan containing only step objects.",
+                    )
+                allowed = {
+                    "title",
+                    "action",
+                    "accept",
+                    "load",
+                    "may_edit",
+                    "validation",
+                    "commit_policy",
+                    "commit_type",
+                }
                 ensure_keys(x, allowed, allowed)
                 title = require_str(x["title"], "step.title")
                 action = require_str(x["action"], "step.action")
                 if title.casefold() in titles:
-                    raise ManagerError("INVALID_PLAN", f"duplicate step title at sequence {i}", "Each step must have a unique bounded action.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        f"duplicate step title at sequence {i}",
+                        "Each step must have a unique bounded action.",
+                    )
                 if len(title.split()) > 14 or len(action) > 500:
-                    raise ManagerError("INVALID_PLAN", f"step {i} is not sufficiently bounded", "Split broad work into smaller child tasks or rewrite the action as one bounded outcome.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        f"step {i} is not sufficiently bounded",
+                        "Split broad work into smaller child tasks or rewrite the action as one bounded outcome.",
+                    )
                 titles.add(title.casefold())
                 action_key = " ".join(action.casefold().split())
                 if action_key in actions:
-                    raise ManagerError("INVALID_PLAN", f"duplicate normalized action at sequence {i}", "Each step must represent a distinct bounded action.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        f"duplicate normalized action at sequence {i}",
+                        "Each step must represent a distinct bounded action.",
+                    )
                 actions.add(action_key)
                 accept = require_string_list(x["accept"], "step.accept", True)
                 load = require_string_list(x["load"], "step.load")
@@ -1639,9 +2526,17 @@ def cmd_submit(store: Store) -> str:
                 validation = require_string_list(x["validation"], "step.validation", True)
                 validation = [validate_command(v, "step.validation") for v in validation]
                 if x["commit_policy"] not in {"required", "optional", "disabled"}:
-                    raise ManagerError("INVALID_PLAN", "commit_policy must be required, optional, or disabled", "Use required, optional, or disabled.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        "commit_policy must be required, optional, or disabled",
+                        "Use required, optional, or disabled.",
+                    )
                 if x["commit_type"] not in {"chore", "fix", "refactor", "test", "docs"}:
-                    raise ManagerError("INVALID_PLAN", "unsupported commit_type", "Use chore, fix, refactor, test, or docs.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        "unsupported commit_type",
+                        "Use chore, fix, refactor, test, or docs.",
+                    )
                 try:
                     for path in may_edit:
                         rel = rel_safe(str(path))
@@ -1652,76 +2547,383 @@ def cmd_submit(store: Store) -> str:
                         if target.exists() and target.is_symlink():
                             raise ValueError("symlink edit boundaries are not permitted")
                 except ValueError as exc:
-                    raise ManagerError("INVALID_PLAN", str(exc), "Use repository-relative, non-symlink paths inside the application repository.")
+                    raise ManagerError(
+                        "INVALID_PLAN",
+                        str(exc),
+                        "Use repository-relative, non-symlink paths inside the application repository.",
+                    )
                 validate_refs_for_plan(task, store, list(map(str, load)))
-                normalized_steps.append((title, action, accept, load, may_edit, validation, str(x["commit_policy"]), str(x["commit_type"])))
+                normalized_steps.append(
+                    (
+                        title,
+                        action,
+                        accept,
+                        load,
+                        may_edit,
+                        validation,
+                        str(x["commit_policy"]),
+                        str(x["commit_type"]),
+                    )
+                )
             if existing:
                 archive_existing_steps(store, task.id, existing)
             first_step_number = store.next_step_number(task.id)
             for i, data in enumerate(normalized_steps, 1):
                 title, action, accept, load, may_edit, validation, commit_policy, commit_type = data
                 step_id = f"STEP-{first_step_number + i - 1:04d}"
-                step_obj = Step(step_id, task.id, i, "ready" if i == 1 else "queued", PHASE_ROLE["implementation"], title, action, accept, load, may_edit, validation, commit_policy, commit_type, now(), now())
+                step_obj = Step(
+                    step_id,
+                    task.id,
+                    i,
+                    "ready" if i == 1 else "queued",
+                    PHASE_ROLE["implementation"],
+                    title,
+                    action,
+                    accept,
+                    load,
+                    may_edit,
+                    validation,
+                    commit_policy,
+                    commit_type,
+                    now(),
+                    now(),
+                )
                 store.save_step(step_obj)
-            task.final_validation = [validate_command(v, "final_validation") for v in final_validation]
+            task.final_validation = [
+                validate_command(v, "final_validation") for v in final_validation
+            ]
             task.current_step = f"STEP-{first_step_number:04d}"
             task.phase = "implementation"
             task.updated = now()
             store.save_task(task)
             store.rebuild_index()
-            return store.remember_submission(token, p, f"OK {task.id} plan accepted") if token else f"OK {task.id} plan accepted"
-        step=current_step(store,task)
-        if phase=="implementation":
-            if not step: raise ManagerError("CORRUPT_STATE","current implementation step is missing","Restore the canonical step record before continuing.")
-            ensure_keys(p,{"agent_id","outcome","summary","changed_files","blocker","evidence","recovery_condition","submission_token"},{"agent_id","outcome","summary","changed_files"}); require_str(p["summary"],"summary"); reject_secret(p["summary"],"summary"); changed=require_string_list(p["changed_files"],"changed_files")
-            if p["outcome"]=="blocked":
-                blocker=require_str(p.get("blocker"),"blocker"); evidence=require_list(p.get("evidence"),"evidence",True); recovery=require_str(p.get("recovery_condition"),"recovery_condition"); transition_step(step, "blocked"); step.result=blocker; step.updated=now(); store.save_step(step); transition_task(task, "blocked"); task.phase=None; task.blocker=blocker; task.updated=now(); store.save_task(task); append_evidence(store,task,"blocked",{"STEP":step.id,"BLOCKER":blocker,"EVIDENCE":"\n".join(map(str,evidence)),"RECOVERY_CONDITION":recovery}); store.rebuild_index(); return store.remember_submission(token,p,"BLOCKED") if token else "BLOCKED"
-            if p["outcome"]!="completed": raise ManagerError("INVALID_SCHEMA","implementation outcome must be completed or blocked","Submit a valid implementation result.")
-            verify_changed_files(store,task,step,list(map(str,changed)))
+            return (
+                store.remember_submission(token, p, f"OK {task.id} plan accepted")
+                if token
+                else f"OK {task.id} plan accepted"
+            )
+        step = current_step(store, task)
+        if phase == "implementation":
+            if not step:
+                raise ManagerError(
+                    "CORRUPT_STATE",
+                    "current implementation step is missing",
+                    "Restore the canonical step record before continuing.",
+                )
+            ensure_keys(
+                p,
+                {
+                    "agent_id",
+                    "outcome",
+                    "summary",
+                    "changed_files",
+                    "blocker",
+                    "evidence",
+                    "recovery_condition",
+                    "submission_token",
+                },
+                {"agent_id", "outcome", "summary", "changed_files"},
+            )
+            require_str(p["summary"], "summary")
+            reject_secret(p["summary"], "summary")
+            changed = require_string_list(p["changed_files"], "changed_files")
+            if p["outcome"] == "blocked":
+                blocker = require_str(p.get("blocker"), "blocker")
+                evidence = require_list(p.get("evidence"), "evidence", True)
+                recovery = require_str(p.get("recovery_condition"), "recovery_condition")
+                transition_step(step, "blocked")
+                step.result = blocker
+                step.updated = now()
+                store.save_step(step)
+                transition_task(task, "blocked")
+                task.phase = None
+                task.blocker = blocker
+                task.updated = now()
+                store.save_task(task)
+                append_evidence(
+                    store,
+                    task,
+                    "blocked",
+                    {
+                        "STEP": step.id,
+                        "BLOCKER": blocker,
+                        "EVIDENCE": "\n".join(map(str, evidence)),
+                        "RECOVERY_CONDITION": recovery,
+                    },
+                )
+                store.rebuild_index()
+                return store.remember_submission(token, p, "BLOCKED") if token else "BLOCKED"
+            if p["outcome"] != "completed":
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "implementation outcome must be completed or blocked",
+                    "Submit a valid implementation result.",
+                )
+            verify_changed_files(store, task, step, list(map(str, changed)))
             if step.status != "active":
-                raise ManagerError("STEP_NOT_ACTIVE", f"step {step.id} is not active", "Run 'manager next' to activate the current ready step, then perform only its ACTION.")
-            changed_for_evidence = enrich_file_evidence_list(store, changed, state="before", commit_id=git_head_commit(store)) if store.git_info()[0] else list(changed)
-            transition_step(step, "implemented"); step.result=p["summary"]; transition_step(step, "validating"); step.updated=now(); store.save_step(step); task.phase="step_validation"; task.updated=now(); store.save_task(task); append_evidence(store,task,"implementation",{"STEP":step.id,"SUMMARY":p["summary"],"CHANGED_FILES":"\n".join(changed_for_evidence)}); store.rebuild_index(); return store.remember_submission(token,p,"OK step_validation") if token else "OK step_validation"
-        if phase=="step_validation":
-            if not step: raise ManagerError("CORRUPT_STATE","current validation step is missing","Restore the canonical step record before continuing.")
-            ensure_keys(p,{"agent_id","outcome","runs","blocker","evidence","recovery_condition","submission_token"},{"agent_id","outcome","runs"}); runs=require_list(p["runs"],"runs",True)
-            expected=step.validation
-            seen=[]
+                raise ManagerError(
+                    "STEP_NOT_ACTIVE",
+                    f"step {step.id} is not active",
+                    "Run 'manager next' to activate the current ready step, then perform only its ACTION.",
+                )
+            changed_for_evidence = (
+                enrich_file_evidence_list(
+                    store, changed, state="before", commit_id=git_head_commit(store)
+                )
+                if store.git_info()[0]
+                else list(changed)
+            )
+            transition_step(step, "implemented")
+            step.result = p["summary"]
+            transition_step(step, "validating")
+            step.updated = now()
+            store.save_step(step)
+            task.phase = "step_validation"
+            task.updated = now()
+            store.save_task(task)
+            append_evidence(
+                store,
+                task,
+                "implementation",
+                {
+                    "STEP": step.id,
+                    "SUMMARY": p["summary"],
+                    "CHANGED_FILES": "\n".join(changed_for_evidence),
+                },
+            )
+            store.rebuild_index()
+            return (
+                store.remember_submission(token, p, "OK step_validation")
+                if token
+                else "OK step_validation"
+            )
+        if phase == "step_validation":
+            if not step:
+                raise ManagerError(
+                    "CORRUPT_STATE",
+                    "current validation step is missing",
+                    "Restore the canonical step record before continuing.",
+                )
+            ensure_keys(
+                p,
+                {
+                    "agent_id",
+                    "outcome",
+                    "runs",
+                    "blocker",
+                    "evidence",
+                    "recovery_condition",
+                    "submission_token",
+                },
+                {"agent_id", "outcome", "runs"},
+            )
+            runs = require_list(p["runs"], "runs", True)
+            expected = step.validation
+            seen = []
             for r in runs:
-                if not isinstance(r,dict): raise ManagerError("INVALID_SCHEMA","each validation run must be an object","Resubmit validation evidence using the returned schema.")
-                ensure_keys(r,{"command","exit_code","summary"},{"command","exit_code","summary"}); command=validate_command(r["command"],"command"); summary=require_str(r["summary"],"summary"); reject_secret(summary,"summary");
-                if command in seen: raise ManagerError("INVALID_SCHEMA", f"validation command was submitted more than once: {command}", "Submit exactly one result for each command listed in VALIDATION.")
-                if not command_allowed(command,expected): raise ManagerError("UNAUTHORIZED_VALIDATION","validation command is not in the accepted plan: " + command,"Run only the exact validation commands listed in the current envelope.")
-                if not isinstance(r["exit_code"], int) or isinstance(r["exit_code"], bool): raise ManagerError("INVALID_SCHEMA","exit_code must be an integer","Report the actual integer exit code.")
+                if not isinstance(r, dict):
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "each validation run must be an object",
+                        "Resubmit validation evidence using the returned schema.",
+                    )
+                ensure_keys(
+                    r, {"command", "exit_code", "summary"}, {"command", "exit_code", "summary"}
+                )
+                command = validate_command(r["command"], "command")
+                summary = require_str(r["summary"], "summary")
+                reject_secret(summary, "summary")
+                if command in seen:
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        f"validation command was submitted more than once: {command}",
+                        "Submit exactly one result for each command listed in VALIDATION.",
+                    )
+                if not command_allowed(command, expected):
+                    raise ManagerError(
+                        "UNAUTHORIZED_VALIDATION",
+                        "validation command is not in the accepted plan: " + command,
+                        "Run only the exact validation commands listed in the current envelope.",
+                    )
+                if not isinstance(r["exit_code"], int) or isinstance(r["exit_code"], bool):
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "exit_code must be an integer",
+                        "Report the actual integer exit code.",
+                    )
                 seen.append(command)
-            missing=[x for x in expected if x not in seen]
-            if missing: raise ManagerError("INCOMPLETE_VALIDATION","required validation commands are missing: " + ", ".join(missing),"Run every command listed in VALIDATION and resubmit all results.")
-            failed=[r for r in runs if r["exit_code"] != 0]
-            if p["outcome"]=="passed" and failed: raise ManagerError("FALSE_PASS","validation was submitted as passed but a command exited non-zero","Submit failed with the actual exit codes.")
-            if p["outcome"]=="failed" and not failed: raise ManagerError("FALSE_FAILURE","validation was submitted as failed but every command passed","Submit passed when every required command exited zero.")
-            if p["outcome"]=="failed":
-                transition_step(step, "failed"); step.result="Validation failed"; step.updated=now(); store.save_step(step); transition_step(step, "ready"); step.updated=now(); store.save_step(step); task.phase="implementation"; task.updated=now(); store.save_task(task); append_evidence(store,task,"validation",{"STEP":step.id,"RESULT":"failed","RUNS":json.dumps(runs),"COMMAND_ARGS":json.dumps({r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True)}); store.rebuild_index(); return store.remember_submission(token,p,"OK implementation") if token else "OK implementation"
-            if p["outcome"]=="blocked":
-                blocker=require_str(p.get("blocker"),"blocker"); evidence=require_list(p.get("evidence"),"evidence",True); recovery=require_str(p.get("recovery_condition"),"recovery_condition"); transition_step(step, "blocked"); step.result=blocker; store.save_step(step); transition_task(task, "blocked"); task.phase=None; task.blocker=blocker; task.updated=now(); store.save_task(task); append_evidence(store,task,"blocked",{"STEP":step.id,"BLOCKER":blocker,"EVIDENCE":"\n".join(map(str,evidence)),"RECOVERY_CONDITION":recovery}); store.rebuild_index(); return store.remember_submission(token,p,"BLOCKED") if token else "BLOCKED"
-            if p["outcome"]!="passed": raise ManagerError("INVALID_SCHEMA","validation outcome must be passed, failed, or blocked","Submit the actual validation outcome.")
-            transition_step(step, "validated"); step.validation_event=append_evidence(store,task,"validation",{"STEP":step.id,"RESULT":"passed","RUNS":json.dumps(runs),"COMMAND_ARGS":json.dumps({r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True)}); step.updated=now(); store.save_step(step); transition_step(step, "committing"); step.updated=now(); store.save_step(step); task.phase="step_commit"; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,"OK step_commit") if token else "OK step_commit"
-        if phase=="step_commit":
+            missing = [x for x in expected if x not in seen]
+            if missing:
+                raise ManagerError(
+                    "INCOMPLETE_VALIDATION",
+                    "required validation commands are missing: " + ", ".join(missing),
+                    "Run every command listed in VALIDATION and resubmit all results.",
+                )
+            failed = [r for r in runs if r["exit_code"] != 0]
+            if p["outcome"] == "passed" and failed:
+                raise ManagerError(
+                    "FALSE_PASS",
+                    "validation was submitted as passed but a command exited non-zero",
+                    "Submit failed with the actual exit codes.",
+                )
+            if p["outcome"] == "failed" and not failed:
+                raise ManagerError(
+                    "FALSE_FAILURE",
+                    "validation was submitted as failed but every command passed",
+                    "Submit passed when every required command exited zero.",
+                )
+            if p["outcome"] == "failed":
+                transition_step(step, "failed")
+                step.result = "Validation failed"
+                step.updated = now()
+                store.save_step(step)
+                transition_step(step, "ready")
+                step.updated = now()
+                store.save_step(step)
+                task.phase = "implementation"
+                task.updated = now()
+                store.save_task(task)
+                append_evidence(
+                    store,
+                    task,
+                    "validation",
+                    {
+                        "STEP": step.id,
+                        "RESULT": "failed",
+                        "RUNS": json.dumps(runs),
+                        "COMMAND_ARGS": json.dumps(
+                            {r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True
+                        ),
+                    },
+                )
+                store.rebuild_index()
+                return (
+                    store.remember_submission(token, p, "OK implementation")
+                    if token
+                    else "OK implementation"
+                )
+            if p["outcome"] == "blocked":
+                blocker = require_str(p.get("blocker"), "blocker")
+                evidence = require_list(p.get("evidence"), "evidence", True)
+                recovery = require_str(p.get("recovery_condition"), "recovery_condition")
+                transition_step(step, "blocked")
+                step.result = blocker
+                store.save_step(step)
+                transition_task(task, "blocked")
+                task.phase = None
+                task.blocker = blocker
+                task.updated = now()
+                store.save_task(task)
+                append_evidence(
+                    store,
+                    task,
+                    "blocked",
+                    {
+                        "STEP": step.id,
+                        "BLOCKER": blocker,
+                        "EVIDENCE": "\n".join(map(str, evidence)),
+                        "RECOVERY_CONDITION": recovery,
+                    },
+                )
+                store.rebuild_index()
+                return store.remember_submission(token, p, "BLOCKED") if token else "BLOCKED"
+            if p["outcome"] != "passed":
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "validation outcome must be passed, failed, or blocked",
+                    "Submit the actual validation outcome.",
+                )
+            transition_step(step, "validated")
+            step.validation_event = append_evidence(
+                store,
+                task,
+                "validation",
+                {
+                    "STEP": step.id,
+                    "RESULT": "passed",
+                    "RUNS": json.dumps(runs),
+                    "COMMAND_ARGS": json.dumps(
+                        {r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True
+                    ),
+                },
+            )
+            step.updated = now()
+            store.save_step(step)
+            transition_step(step, "committing")
+            step.updated = now()
+            store.save_step(step)
+            task.phase = "step_commit"
+            task.updated = now()
+            store.save_task(task)
+            store.rebuild_index()
+            return (
+                store.remember_submission(token, p, "OK step_commit") if token else "OK step_commit"
+            )
+        if phase == "step_commit":
             recovered = recover_step_commit(store, task, step) if step else None
             if recovered:
                 return recovered
-            ensure_keys(p,{"agent_id","outcome","submission_token"},{"agent_id","outcome"})
-            if p["outcome"] not in {"ready_to_commit", "skip_commit"}: raise ManagerError("INVALID_SCHEMA","step commit outcome must be ready_to_commit or skip_commit","Submit ready_to_commit for a manager-created commit, or skip_commit only when the step commit policy is optional.")
-            if step.status not in {"validated", "committing"}: raise ManagerError("COMMIT_BEFORE_VALIDATION","step is not validated","Run the current validation phase and obtain a passed result before committing.")
+            ensure_keys(p, {"agent_id", "outcome", "submission_token"}, {"agent_id", "outcome"})
+            if p["outcome"] not in {"ready_to_commit", "skip_commit"}:
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "step commit outcome must be ready_to_commit or skip_commit",
+                    "Submit ready_to_commit for a manager-created commit, or skip_commit only when the step commit policy is optional.",
+                )
+            if step.status not in {"validated", "committing"}:
+                raise ManagerError(
+                    "COMMIT_BEFORE_VALIDATION",
+                    "step is not validated",
+                    "Run the current validation phase and obtain a passed result before committing.",
+                )
             if p["outcome"] == "skip_commit":
                 if step.commit_policy != "optional":
-                    raise ManagerError("COMMIT_REQUIRED","this step does not permit skipping its commit gate","Submit ready_to_commit for a required/available manager commit, or use skip_commit only for an optional commit policy.")
-                step.commit_id="skipped"; step.commit_message=""; transition_step(step, "done"); step.updated=now(); store.save_step(step); append_evidence(store,task,"commit_skipped",{"STEP":step.id,"COMMIT_POLICY":"optional"}); advance_after_step(store,task,step); return store.remember_submission(token,p,"OK implementation") if token else "OK implementation"
-            if step.commit_policy=="disabled" or task.commit_mode=="disabled":
-                step.commit_id="disabled"; transition_step(step, "done"); step.updated=now(); store.save_step(step); advance_after_step(store,task,step); return store.remember_submission(token,p,"OK implementation") if token else "OK implementation"
-            paths=step.may_edit
-            current=set(store.git_status_paths()); base=set(task.git_base); changed=sorted(current-base)
-            if set(changed)-set(paths): raise ManagerError("DIRTY_WORKTREE","changes outside the current step boundary would be committed","Restore unrelated changes before requesting the manager commit.")
-            if not changed: raise ManagerError("EMPTY_COMMIT","no application changes exist for the current required commit","Implement the step and report the actual changed files before requesting a commit.")
+                    raise ManagerError(
+                        "COMMIT_REQUIRED",
+                        "this step does not permit skipping its commit gate",
+                        "Submit ready_to_commit for a required/available manager commit, or use skip_commit only for an optional commit policy.",
+                    )
+                step.commit_id = "skipped"
+                step.commit_message = ""
+                transition_step(step, "done")
+                step.updated = now()
+                store.save_step(step)
+                append_evidence(
+                    store, task, "commit_skipped", {"STEP": step.id, "COMMIT_POLICY": "optional"}
+                )
+                advance_after_step(store, task, step)
+                return (
+                    store.remember_submission(token, p, "OK implementation")
+                    if token
+                    else "OK implementation"
+                )
+            if step.commit_policy == "disabled" or task.commit_mode == "disabled":
+                step.commit_id = "disabled"
+                transition_step(step, "done")
+                step.updated = now()
+                store.save_step(step)
+                advance_after_step(store, task, step)
+                return (
+                    store.remember_submission(token, p, "OK implementation")
+                    if token
+                    else "OK implementation"
+                )
+            paths = step.may_edit
+            current = set(store.git_status_paths())
+            base = set(task.git_base)
+            changed = sorted(current - base)
+            if set(changed) - set(paths):
+                raise ManagerError(
+                    "DIRTY_WORKTREE",
+                    "changes outside the current step boundary would be committed",
+                    "Restore unrelated changes before requesting the manager commit.",
+                )
+            if not changed:
+                raise ManagerError(
+                    "EMPTY_COMMIT",
+                    "no application changes exist for the current required commit",
+                    "Implement the step and report the actual changed files before requesting a commit.",
+                )
             message = f"{step.commit_type}: {step.title.lower()}"
             step.commit_message = message
             step.commit_base_head = store.git_head()
@@ -1734,7 +2936,9 @@ def cmd_submit(store: Store) -> str:
             transition_step(step, "done")
             step.updated = now()
             store.save_step(step)
-            changed_after = enrich_file_evidence_list(store, store.git_commit_paths(cid), state="after", commit_id=cid)
+            changed_after = enrich_file_evidence_list(
+                store, store.git_commit_paths(cid), state="after", commit_id=cid
+            )
             append_evidence(
                 store,
                 task,
@@ -1749,29 +2953,115 @@ def cmd_submit(store: Store) -> str:
             )
             advance_after_step(store, task, step)
             return store.remember_submission(token, p, cid) if token else cid
-        if phase=="final_validation":
-            ensure_keys(p,{"agent_id","outcome","runs","review_findings","failure_classification","blocker","evidence","recovery_condition","diff_reviewed","submission_token"},{"agent_id","outcome","runs","review_findings","diff_reviewed"}); runs=require_list(p["runs"],"runs"); review=require_list(p["review_findings"],"review_findings")
-            if p["diff_reviewed"] is not True: raise ManagerError("DIFF_REVIEW_REQUIRED","final validation must explicitly confirm the full diff was reviewed","Submit diff_reviewed: true after reviewing the complete relevant diff.")
+        if phase == "final_validation":
+            ensure_keys(
+                p,
+                {
+                    "agent_id",
+                    "outcome",
+                    "runs",
+                    "review_findings",
+                    "failure_classification",
+                    "blocker",
+                    "evidence",
+                    "recovery_condition",
+                    "diff_reviewed",
+                    "submission_token",
+                },
+                {"agent_id", "outcome", "runs", "review_findings", "diff_reviewed"},
+            )
+            runs = require_list(p["runs"], "runs")
+            review = require_list(p["review_findings"], "review_findings")
+            if p["diff_reviewed"] is not True:
+                raise ManagerError(
+                    "DIFF_REVIEW_REQUIRED",
+                    "final validation must explicitly confirm the full diff was reviewed",
+                    "Submit diff_reviewed: true after reviewing the complete relevant diff.",
+                )
             for finding in review:
-                if not isinstance(finding, str) or not finding.strip(): raise ManagerError("INVALID_SCHEMA","review_findings must contain non-empty strings","Provide concise unresolved review findings as strings.")
-            steps=store.load_steps(task.id); children=store.children(tasks,task.id)
-            if children and not all(c.status=="done" for c in children): raise ManagerError("CHILDREN_INCOMPLETE","final validation is not allowed until all child tasks are done","Complete the remaining child task before final validation.")
-            if steps and not all(s.status=="done" for s in steps): raise ManagerError("STEPS_INCOMPLETE","final validation is not allowed until all steps are done","Complete the remaining implementation steps before final validation.")
+                if not isinstance(finding, str) or not finding.strip():
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "review_findings must contain non-empty strings",
+                        "Provide concise unresolved review findings as strings.",
+                    )
+            steps = store.load_steps(task.id)
+            children = store.children(tasks, task.id)
+            if children and not all(c.status == "done" for c in children):
+                raise ManagerError(
+                    "CHILDREN_INCOMPLETE",
+                    "final validation is not allowed until all child tasks are done",
+                    "Complete the remaining child task before final validation.",
+                )
+            if steps and not all(s.status == "done" for s in steps):
+                raise ManagerError(
+                    "STEPS_INCOMPLETE",
+                    "final validation is not allowed until all steps are done",
+                    "Complete the remaining implementation steps before final validation.",
+                )
             for r in runs:
-                if not isinstance(r,dict): raise ManagerError("INVALID_SCHEMA","each final validation run must be an object","Resubmit final validation evidence using the returned schema.")
-                ensure_keys(r,{"command","exit_code","summary"},{"command","exit_code","summary"}); validate_command(r["command"],"command")
-                if not isinstance(r["exit_code"], int) or isinstance(r["exit_code"], bool): raise ManagerError("INVALID_SCHEMA","exit_code must be an integer","Submit the actual integer process exit code.")
-                summary=require_str(r["summary"],"summary"); reject_secret(summary,"summary")
-                if r["command"] not in task.final_validation: raise ManagerError("UNAUTHORIZED_VALIDATION","final validation command is not in the accepted plan","Run only the exact final validation commands from the task plan.")
-            missing=[x for x in task.final_validation if x not in [r["command"] for r in runs]]
-            if missing: raise ManagerError("INCOMPLETE_VALIDATION","missing final validation commands: " + ", ".join(missing),"Run every final validation command and resubmit all results.")
-            failed=[r for r in runs if r["exit_code"]!=0]
-            if p["outcome"]=="passed" and (failed or review): raise ManagerError("FALSE_PASS","final validation cannot pass with failed commands or unresolved review findings","Submit failed and include the actual findings.")
-            if p["outcome"]=="failed":
-                classification = require_str(p.get("failure_classification"), "failure_classification")
+                if not isinstance(r, dict):
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "each final validation run must be an object",
+                        "Resubmit final validation evidence using the returned schema.",
+                    )
+                ensure_keys(
+                    r, {"command", "exit_code", "summary"}, {"command", "exit_code", "summary"}
+                )
+                validate_command(r["command"], "command")
+                if not isinstance(r["exit_code"], int) or isinstance(r["exit_code"], bool):
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "exit_code must be an integer",
+                        "Submit the actual integer process exit code.",
+                    )
+                summary = require_str(r["summary"], "summary")
+                reject_secret(summary, "summary")
+                if r["command"] not in task.final_validation:
+                    raise ManagerError(
+                        "UNAUTHORIZED_VALIDATION",
+                        "final validation command is not in the accepted plan",
+                        "Run only the exact final validation commands from the task plan.",
+                    )
+            missing = [x for x in task.final_validation if x not in [r["command"] for r in runs]]
+            if missing:
+                raise ManagerError(
+                    "INCOMPLETE_VALIDATION",
+                    "missing final validation commands: " + ", ".join(missing),
+                    "Run every final validation command and resubmit all results.",
+                )
+            failed = [r for r in runs if r["exit_code"] != 0]
+            if p["outcome"] == "passed" and (failed or review):
+                raise ManagerError(
+                    "FALSE_PASS",
+                    "final validation cannot pass with failed commands or unresolved review findings",
+                    "Submit failed and include the actual findings.",
+                )
+            if p["outcome"] == "failed":
+                classification = require_str(
+                    p.get("failure_classification"), "failure_classification"
+                )
                 if classification not in {"implementation", "planning"}:
-                    raise ManagerError("INVALID_SCHEMA", "failure_classification must be implementation or planning", "Classify the final failure as implementation or planning and resubmit.")
-                append_evidence(store,task,"final_validation",{"RESULT":"failed","FAILURE_CLASSIFICATION":classification,"RUNS":json.dumps(runs),"COMMAND_ARGS":json.dumps({r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True),"REVIEW_FINDINGS":json.dumps(review)})
+                    raise ManagerError(
+                        "INVALID_SCHEMA",
+                        "failure_classification must be implementation or planning",
+                        "Classify the final failure as implementation or planning and resubmit.",
+                    )
+                append_evidence(
+                    store,
+                    task,
+                    "final_validation",
+                    {
+                        "RESULT": "failed",
+                        "FAILURE_CLASSIFICATION": classification,
+                        "RUNS": json.dumps(runs),
+                        "COMMAND_ARGS": json.dumps(
+                            {r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True
+                        ),
+                        "REVIEW_FINDINGS": json.dumps(review),
+                    },
+                )
                 if classification == "implementation" and len(review) == 1:
                     # Final review may return directly to implementation. Completed
                     # historical steps remain terminal; the manager creates one new
@@ -1789,11 +3079,24 @@ def cmd_submit(store: Store) -> str:
                     sid = f"STEP-{step_number:04d}"
                     correction = review[0].strip()
                     corrective = Step(
-                        sid, task.id, sequence, "ready", PHASE_ROLE["implementation"],
-                        "Correct final-review implementation defect", correction,
-                        ["The final-review finding is resolved.", "The task remains within the approved application boundary."],
-                        list(prior.load), sorted({path for s in steps for path in s.may_edit}),
-                        list(prior.validation), prior.commit_policy, "fix", now(), now()
+                        sid,
+                        task.id,
+                        sequence,
+                        "ready",
+                        PHASE_ROLE["implementation"],
+                        "Correct final-review implementation defect",
+                        correction,
+                        [
+                            "The final-review finding is resolved.",
+                            "The task remains within the approved application boundary.",
+                        ],
+                        list(prior.load),
+                        sorted({path for s in steps for path in s.may_edit}),
+                        list(prior.validation),
+                        prior.commit_policy,
+                        "fix",
+                        now(),
+                        now(),
                     )
                     store.save_step(corrective)
                     task.current_step = sid
@@ -1801,37 +3104,115 @@ def cmd_submit(store: Store) -> str:
                     task.updated = now()
                     store.save_task(task)
                     store.rebuild_index()
-                    return store.remember_submission(token,p,"OK implementation") if token else "OK implementation"
+                    return (
+                        store.remember_submission(token, p, "OK implementation")
+                        if token
+                        else "OK implementation"
+                    )
                 task.phase = "planning"
                 task.current_step = None
                 task.updated = now()
                 store.save_task(task)
                 store.rebuild_index()
-                return store.remember_submission(token,p,"OK planning") if token else "OK planning"
-            if p["outcome"]=="blocked":
-                blocker=require_str(p.get("blocker"),"blocker"); evidence=require_list(p.get("evidence"),"evidence",True); recovery=require_str(p.get("recovery_condition"),"recovery_condition"); transition_task(task, "blocked"); task.phase=None; task.blocker=blocker; task.updated=now(); store.save_task(task); append_evidence(store,task,"blocked",{"BLOCKER":blocker,"EVIDENCE":"\n".join(map(str,evidence)),"RECOVERY_CONDITION":recovery}); store.rebuild_index(); return store.remember_submission(token,p,"BLOCKED") if token else "BLOCKED"
-            if p["outcome"]!="passed": raise ManagerError("INVALID_SCHEMA","final validation outcome must be passed, failed, or blocked","Submit the actual final validation outcome.")
-            append_evidence(store,task,"final_validation",{"RESULT":"passed","RUNS":json.dumps(runs),"COMMAND_ARGS":json.dumps({r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True),"REVIEW_FINDINGS":"none"}); task.phase="final_commit"; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,"OK final_commit") if token else "OK final_commit"
-        if phase=="final_commit":
+                return (
+                    store.remember_submission(token, p, "OK planning") if token else "OK planning"
+                )
+            if p["outcome"] == "blocked":
+                blocker = require_str(p.get("blocker"), "blocker")
+                evidence = require_list(p.get("evidence"), "evidence", True)
+                recovery = require_str(p.get("recovery_condition"), "recovery_condition")
+                transition_task(task, "blocked")
+                task.phase = None
+                task.blocker = blocker
+                task.updated = now()
+                store.save_task(task)
+                append_evidence(
+                    store,
+                    task,
+                    "blocked",
+                    {
+                        "BLOCKER": blocker,
+                        "EVIDENCE": "\n".join(map(str, evidence)),
+                        "RECOVERY_CONDITION": recovery,
+                    },
+                )
+                store.rebuild_index()
+                return store.remember_submission(token, p, "BLOCKED") if token else "BLOCKED"
+            if p["outcome"] != "passed":
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "final validation outcome must be passed, failed, or blocked",
+                    "Submit the actual final validation outcome.",
+                )
+            append_evidence(
+                store,
+                task,
+                "final_validation",
+                {
+                    "RESULT": "passed",
+                    "RUNS": json.dumps(runs),
+                    "COMMAND_ARGS": json.dumps(
+                        {r["command"]: command_argv(r["command"]) for r in runs}, sort_keys=True
+                    ),
+                    "REVIEW_FINDINGS": "none",
+                },
+            )
+            task.phase = "final_commit"
+            task.updated = now()
+            store.save_task(task)
+            store.rebuild_index()
+            return (
+                store.remember_submission(token, p, "OK final_commit")
+                if token
+                else "OK final_commit"
+            )
+        if phase == "final_commit":
             recovered = recover_final_commit(store, task)
             if recovered:
                 return recovered
-            ensure_keys(p,{"agent_id","outcome","submission_token"},{"agent_id","outcome"})
-            if p["outcome"]!="ready_to_commit": raise ManagerError("INVALID_SCHEMA","final commit outcome must be ready_to_commit","Submit the exact final commit readiness result.")
-            steps=store.load_steps(task.id)
-            if not all(s.status=="done" for s in steps): raise ManagerError("COMMIT_GATE","final commit requires all steps done","Complete every implementation step before final commit.")
-            if task.commit_mode=="disabled":
-                transition_task(task, "done"); task.phase=None; task.current_step=None; task.updated=now(); store.save_task(task); store.rebuild_index(); return store.remember_submission(token,p,"OK done") if token else "OK done"
-            current=set(store.git_status_paths()); base=set(task.git_base); changed=sorted(current-base)
+            ensure_keys(p, {"agent_id", "outcome", "submission_token"}, {"agent_id", "outcome"})
+            if p["outcome"] != "ready_to_commit":
+                raise ManagerError(
+                    "INVALID_SCHEMA",
+                    "final commit outcome must be ready_to_commit",
+                    "Submit the exact final commit readiness result.",
+                )
+            steps = store.load_steps(task.id)
+            if not all(s.status == "done" for s in steps):
+                raise ManagerError(
+                    "COMMIT_GATE",
+                    "final commit requires all steps done",
+                    "Complete every implementation step before final commit.",
+                )
+            if task.commit_mode == "disabled":
+                transition_task(task, "done")
+                task.phase = None
+                task.current_step = None
+                task.updated = now()
+                store.save_task(task)
+                store.rebuild_index()
+                return store.remember_submission(token, p, "OK done") if token else "OK done"
+            current = set(store.git_status_paths())
+            base = set(task.git_base)
+            changed = sorted(current - base)
             # Final integration commits may contain only paths explicitly authorized by
             # implementation steps. This prevents unrelated post-step edits from being
             # silently swept into the feature commit.
-            if any(p==".manager" or p.startswith(".manager/") for p in changed):
-                raise ManagerError("MANAGED_FILE_CHANGE","final commit would include manager-owned files","Do not include .manager files in application commits.")
-            allowed={path for s in steps for path in s.may_edit}
-            unauthorized=sorted(set(changed)-allowed)
+            if any(p == ".manager" or p.startswith(".manager/") for p in changed):
+                raise ManagerError(
+                    "MANAGED_FILE_CHANGE",
+                    "final commit would include manager-owned files",
+                    "Do not include .manager files in application commits.",
+                )
+            allowed = {path for s in steps for path in s.may_edit}
+            unauthorized = sorted(set(changed) - allowed)
             if unauthorized:
-                raise ManagerError("DIRTY_WORKTREE","changes outside the task's approved final boundary would be committed: " + ", ".join(unauthorized),"Restore unrelated changes before requesting the final commit.")
+                raise ManagerError(
+                    "DIRTY_WORKTREE",
+                    "changes outside the task's approved final boundary would be committed: "
+                    + ", ".join(unauthorized),
+                    "Restore unrelated changes before requesting the final commit.",
+                )
             message = f"feat: {task.title.lower()}"
             task.final_commit_message = message
             task.updated = now()
@@ -1840,7 +3221,9 @@ def cmd_submit(store: Store) -> str:
             store.refresh_integrity()
             cid = store.git_commit(changed, message, allow_empty=True)
             task.final_commit_id = cid
-            changed_after = enrich_file_evidence_list(store, store.git_commit_paths(cid), state="after", commit_id=cid)
+            changed_after = enrich_file_evidence_list(
+                store, store.git_commit_paths(cid), state="after", commit_id=cid
+            )
             append_evidence(
                 store,
                 task,
@@ -1860,46 +3243,94 @@ def cmd_submit(store: Store) -> str:
             store.save_task(task)
             store.rebuild_index()
             return store.remember_submission(token, p, cid) if token else cid
-        raise ManagerError("INVALID_PHASE","current task has no supported execution phase","Run 'manager next' to reconstruct the current execution envelope.")
+        raise ManagerError(
+            "INVALID_PHASE",
+            "current task has no supported execution phase",
+            "Run 'manager next' to reconstruct the current execution envelope.",
+        )
 
 
 def advance_after_step(store: Store, task: Task, step: Step) -> None:
-    steps=store.load_steps(task.id)
-    nxt=next((s for s in steps if s.sequence > step.sequence and s.status=="queued"),None)
+    steps = store.load_steps(task.id)
+    nxt = next((s for s in steps if s.sequence > step.sequence and s.status == "queued"), None)
     if nxt:
-        transition_step(nxt, "ready"); nxt.updated=now(); store.save_step(nxt); task.current_step=nxt.id; task.phase="implementation"; task.updated=now(); store.save_task(task)
+        transition_step(nxt, "ready")
+        nxt.updated = now()
+        store.save_step(nxt)
+        task.current_step = nxt.id
+        task.phase = "implementation"
+        task.updated = now()
+        store.save_task(task)
     else:
-        task.current_step=None; task.phase="final_validation"; task.updated=now(); store.save_task(task)
+        task.current_step = None
+        task.phase = "final_validation"
+        task.updated = now()
+        store.save_task(task)
     store.rebuild_index()
 
 
 def cmd_decision_resolve(store: Store) -> str:
     p = stdin_json()
-    ensure_keys(p, {"task", "agent_id", "decision_id", "status", "submission_token"}, {"agent_id", "decision_id", "status"})
+    ensure_keys(
+        p,
+        {"task", "agent_id", "decision_id", "status", "submission_token"},
+        {"agent_id", "decision_id", "status"},
+    )
     if p["status"] not in {"accepted", "rejected"}:
-        raise ManagerError("INVALID_SCHEMA", "decision status must be accepted or rejected", "Choose accepted or rejected.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "decision status must be accepted or rejected",
+            "Choose accepted or rejected.",
+        )
     with store.lock():
-        store.initialize(); tasks = store.load_tasks(); task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
+        store.initialize()
+        tasks = store.load_tasks()
+        task = tasks.get(p.get("task")) if p.get("task") else selected_task(store, tasks)
         if not task or task.phase != "analysis":
-            raise ManagerError("INVALID_PHASE", "decisions can only be resolved during analysis", "Run 'manager next' and follow the analysis phase.")
+            raise ManagerError(
+                "INVALID_PHASE",
+                "decisions can only be resolved during analysis",
+                "Run 'manager next' and follow the analysis phase.",
+            )
         require_payload_agent_id(p, task)
         did = require_str(p["decision_id"], "decision_id")
         path = store.knowledge_dir / f"{task.id}-decisions.md"
         if not path.exists():
-            raise ManagerError("MISSING_DECISION", f"decision {did} does not exist", "Use an existing proposed decision ID.")
+            raise ManagerError(
+                "MISSING_DECISION",
+                f"decision {did} does not exist",
+                "Use an existing proposed decision ID.",
+            )
         text = path.read_text(encoding="utf-8")
         marker = f"## {did}"
         if marker not in text:
-            raise ManagerError("MISSING_DECISION", f"decision {did} does not exist", "Use an existing proposed decision ID.")
+            raise ManagerError(
+                "MISSING_DECISION",
+                f"decision {did} does not exist",
+                "Use an existing proposed decision ID.",
+            )
         chunk = text.split(marker, 1)[1].split("\n## ", 1)[0]
-        resolutions = re.findall(r"## DECISION-RESOLUTION-" + re.escape(did) + r"\n\nDECISION_ID:\n" + re.escape(did) + r"\n\nSTATUS:\n([^\n]+)", text)
+        resolutions = re.findall(
+            r"## DECISION-RESOLUTION-"
+            + re.escape(did)
+            + r"\n\nDECISION_ID:\n"
+            + re.escape(did)
+            + r"\n\nSTATUS:\n([^\n]+)",
+            text,
+        )
         if resolutions:
             return f"OK {did} already {resolutions[-1].strip()}"
         if "STATUS:\nproposed" not in chunk:
-            raise ManagerError("INVALID_DECISION", f"decision {did} is not in proposed state", "Resolve only a proposed decision.")
+            raise ManagerError(
+                "INVALID_DECISION",
+                f"decision {did} is not in proposed state",
+                "Resolve only a proposed decision.",
+            )
         # Decisions are append-only: retain the original proposal and append a resolution event.
         resolution = f"\n\n## DECISION-RESOLUTION-{did}\n\nDECISION_ID:\n{did}\n\nSTATUS:\n{p['status']}\n\nRECORDED_AT:\n{now()}\n"
-        fm, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(text)
+        fm, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(
+            text
+        )
         fm["updated"] = now()
         updated_body = body.rstrip() + resolution
 
@@ -1916,15 +3347,25 @@ def cmd_decision_resolve(store: Store) -> str:
             if supersedes and supersedes != "None":
                 old_marker = f"## {supersedes}"
                 if old_marker not in updated_body:
-                    raise ManagerError("MISSING_DECISION", f"superseded decision {supersedes} does not exist", "Restore the referenced decision before accepting this proposal.")
+                    raise ManagerError(
+                        "MISSING_DECISION",
+                        f"superseded decision {supersedes} does not exist",
+                        "Restore the referenced decision before accepting this proposal.",
+                    )
                 old_resolutions = re.findall(
-                    r"## DECISION-RESOLUTION-" + re.escape(supersedes) +
-                    r"\n\nDECISION_ID:\n" + re.escape(supersedes) +
-                    r"\n\nSTATUS:\n([^\n]+)",
+                    r"## DECISION-RESOLUTION-"
+                    + re.escape(supersedes)
+                    + r"\n\nDECISION_ID:\n"
+                    + re.escape(supersedes)
+                    + r"\n\nSTATUS:\n([^\n]+)",
                     updated_body,
                 )
                 if not old_resolutions or old_resolutions[-1].strip() != "accepted":
-                    raise ManagerError("INVALID_DECISION", f"decision {supersedes} is not accepted", "Only an accepted decision may be superseded.")
+                    raise ManagerError(
+                        "INVALID_DECISION",
+                        f"decision {supersedes} is not accepted",
+                        "Only an accepted decision may be superseded.",
+                    )
                 updated_body += (
                     f"\n\n## DECISION-RESOLUTION-{supersedes}"
                     f"\n\nDECISION_ID:\n{supersedes}"
@@ -1942,12 +3383,20 @@ def blocked_recovery_condition(store: Store, task: Task) -> str:
     path = store.evidence_dir / f"{task.id}-evidence.md"
     if not path.exists():
         return "unknown"
-    _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(path.read_text(encoding="utf-8"))
-    matches = re.findall(r"## EVT-\d{4}\n\nTYPE:\nblocked\n\nRECORDED_AT:\n[^\n]+\n(.*?)(?=\n## EVT-|\Z)", body, flags=re.DOTALL)
+    _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(
+        path.read_text(encoding="utf-8")
+    )
+    matches = re.findall(
+        r"## EVT-\d{4}\n\nTYPE:\nblocked\n\nRECORDED_AT:\n[^\n]+\n(.*?)(?=\n## EVT-|\Z)",
+        body,
+        flags=re.DOTALL,
+    )
     if not matches:
         return "unknown"
     latest = matches[-1]
-    found = re.search(r"\nRECOVERY_CONDITION:\n(.*?)(?=\n[A-Z_]+:\n|\Z)", "\n" + latest, flags=re.DOTALL)
+    found = re.search(
+        r"\nRECOVERY_CONDITION:\n(.*?)(?=\n[A-Z_]+:\n|\Z)", "\n" + latest, flags=re.DOTALL
+    )
     return found.group(1).strip() if found and found.group(1).strip() else "unknown"
 
 
@@ -1957,44 +3406,60 @@ def cmd_submit_schema(store: Store, as_json: bool = False, path_only: bool = Fal
         tasks = store.load_tasks()
         task = selected_task(store, tasks)
         if not task or task.status != "active":
-            raise ManagerError("NO_TASK", "no active task is available", "Run 'manager status --compact'. If task is NO_TASK, run 'manager task add' with payload from schema_path, then run 'manager next'.")
+            raise ManagerError(
+                "NO_TASK",
+                "no active task is available",
+                "Run 'manager status --compact'. If task is NO_TASK, run 'manager task add' with payload from schema_path, then run 'manager next'.",
+            )
         payload = next_envelope_payload(store, task, promote_ready=False)
         if not payload:
-            raise ManagerError("INVALID_PHASE", "no active phase schema is available", "Run 'manager next' to reconstruct the current phase.")
+            raise ManagerError(
+                "INVALID_PHASE",
+                "no active phase schema is available",
+                "Run 'manager next' to reconstruct the current phase.",
+            )
         schema_path = persist_return_schema(store, payload["return_schema"])
         if path_only:
             if as_json:
                 return json.dumps({"schema_path": schema_path}, indent=2)
             return schema_path + "\n"
         if as_json:
-            return json.dumps({
-                "task": payload["task"],
-                "phase": payload["phase"],
-                "return_schema": payload["return_schema"],
-                "return_schema_path": schema_path,
-                "output_limit": payload["output_limit"],
-                "submit_command": payload["submit_command"],
-                "recommended_context_command": payload["recommended_context_command"],
-                "micro_cycle": payload["micro_cycle"],
-            }, indent=2)
-        return "\n".join([
-            f"TASK: {payload['task']}",
-            f"PHASE: {payload['phase']}",
-            "RETURN_SCHEMA:",
-            json.dumps(payload["return_schema"], indent=2),
-            "",
-            "RETURN_SCHEMA_PATH:",
-            schema_path,
-            "",
-            "OUTPUT_LIMIT:",
-            f"{payload['output_limit']} characters per textual result field",
-            "",
-            "SUBMIT_COMMAND:",
-            payload["submit_command"],
-            "",
-            "RECOMMENDED_CONTEXT_COMMAND:",
-            payload["recommended_context_command"],
-        ]) + "\n"
+            return json.dumps(
+                {
+                    "task": payload["task"],
+                    "phase": payload["phase"],
+                    "return_schema": payload["return_schema"],
+                    "return_schema_path": schema_path,
+                    "output_limit": payload["output_limit"],
+                    "submit_command": payload["submit_command"],
+                    "recommended_context_command": payload["recommended_context_command"],
+                    "micro_cycle": payload["micro_cycle"],
+                },
+                indent=2,
+            )
+        return (
+            "\n".join(
+                [
+                    f"TASK: {payload['task']}",
+                    f"PHASE: {payload['phase']}",
+                    "RETURN_SCHEMA:",
+                    json.dumps(payload["return_schema"], indent=2),
+                    "",
+                    "RETURN_SCHEMA_PATH:",
+                    schema_path,
+                    "",
+                    "OUTPUT_LIMIT:",
+                    f"{payload['output_limit']} characters per textual result field",
+                    "",
+                    "SUBMIT_COMMAND:",
+                    payload["submit_command"],
+                    "",
+                    "RECOMMENDED_CONTEXT_COMMAND:",
+                    payload["recommended_context_command"],
+                ]
+            )
+            + "\n"
+        )
 
 
 def cmd_bootstrap(store: Store, as_json: bool = False) -> str:
@@ -2028,12 +3493,15 @@ def cmd_bootstrap(store: Store, as_json: bool = False) -> str:
         }
         if as_json:
             return json.dumps(payload, indent=2)
-        return "\n".join(
-            [
-                "BOOTSTRAP:",
-                json.dumps(payload, indent=2),
-            ]
-        ) + "\n"
+        return (
+            "\n".join(
+                [
+                    "BOOTSTRAP:",
+                    json.dumps(payload, indent=2),
+                ]
+            )
+            + "\n"
+        )
 
 
 def cmd_verify(store: Store, as_json: bool = False) -> str:
@@ -2049,18 +3517,59 @@ def cmd_verify(store: Store, as_json: bool = False) -> str:
         "total_tasks": len(tasks),
         "current": task.id if task else "NO_TASK",
     }
-    return json.dumps(result, indent=2) if as_json else f"OK CURRENT={result['current']} TOTAL={result['total_tasks']}\n"
+    return (
+        json.dumps(result, indent=2)
+        if as_json
+        else f"OK CURRENT={result['current']} TOTAL={result['total_tasks']}\n"
+    )
 
 
 def cmd_examples(as_json: bool = False) -> str:
     sample_agent_id = "00000000-0000-4000-8000-000000000001"
     examples = {
-        "analysis": {"agent_id": sample_agent_id, "outcome": "completed", "summary": "done", "finding_ids": [], "decision_ids": [], "atomic": True},
-        "planning": {"agent_id": sample_agent_id, "steps": [{"title": "Implement", "action": "Implement", "accept": ["works"], "load": [], "may_edit": ["app.py"], "validation": ["python -m unittest"], "commit_policy": "disabled", "commit_type": "chore"}], "final_validation": ["python -m unittest"]},
-        "implementation": {"agent_id": sample_agent_id, "outcome": "completed", "summary": "implemented", "changed_files": ["app.py"]},
-        "step_validation": {"agent_id": sample_agent_id, "outcome": "passed", "runs": [{"command": "python -m unittest", "exit_code": 0, "summary": "ok"}]},
+        "analysis": {
+            "agent_id": sample_agent_id,
+            "outcome": "completed",
+            "summary": "done",
+            "finding_ids": [],
+            "decision_ids": [],
+            "atomic": True,
+        },
+        "planning": {
+            "agent_id": sample_agent_id,
+            "steps": [
+                {
+                    "title": "Implement",
+                    "action": "Implement",
+                    "accept": ["works"],
+                    "load": [],
+                    "may_edit": ["app.py"],
+                    "validation": ["python -m unittest"],
+                    "commit_policy": "disabled",
+                    "commit_type": "chore",
+                }
+            ],
+            "final_validation": ["python -m unittest"],
+        },
+        "implementation": {
+            "agent_id": sample_agent_id,
+            "outcome": "completed",
+            "summary": "implemented",
+            "changed_files": ["app.py"],
+        },
+        "step_validation": {
+            "agent_id": sample_agent_id,
+            "outcome": "passed",
+            "runs": [{"command": "python -m unittest", "exit_code": 0, "summary": "ok"}],
+        },
         "step_commit": {"agent_id": sample_agent_id, "outcome": "ready_to_commit"},
-        "final_validation": {"agent_id": sample_agent_id, "outcome": "passed", "runs": [], "review_findings": [], "diff_reviewed": True},
+        "final_validation": {
+            "agent_id": sample_agent_id,
+            "outcome": "passed",
+            "runs": [],
+            "review_findings": [],
+            "diff_reviewed": True,
+        },
         "final_commit": {"agent_id": sample_agent_id, "outcome": "ready_to_commit"},
     }
     if as_json:
@@ -2081,15 +3590,38 @@ def next_learning_id(path: Path) -> str:
 
 def cmd_learn_add(store: Store) -> dict[str, Any]:
     p = stdin_json()
-    ensure_keys(p, {"issue", "error_code", "phase", "suggestion", "impact", "evidence", "severity", "submission_token"}, {"issue"})
+    ensure_keys(
+        p,
+        {
+            "issue",
+            "error_code",
+            "phase",
+            "suggestion",
+            "impact",
+            "evidence",
+            "severity",
+            "submission_token",
+        },
+        {"issue"},
+    )
     issue = require_str(p["issue"], "issue")
-    error_code = require_str(p.get("error_code"), "error_code") if p.get("error_code") is not None else ""
+    error_code = (
+        require_str(p.get("error_code"), "error_code") if p.get("error_code") is not None else ""
+    )
     phase = require_str(p.get("phase"), "phase") if p.get("phase") is not None else ""
-    suggestion = require_str(p.get("suggestion"), "suggestion") if p.get("suggestion") is not None else ""
+    suggestion = (
+        require_str(p.get("suggestion"), "suggestion") if p.get("suggestion") is not None else ""
+    )
     impact = require_str(p.get("impact"), "impact") if p.get("impact") is not None else ""
-    severity = require_str(p.get("severity"), "severity") if p.get("severity") is not None else "medium"
+    severity = (
+        require_str(p.get("severity"), "severity") if p.get("severity") is not None else "medium"
+    )
     if severity not in {"low", "medium", "high"}:
-        raise ManagerError("INVALID_SCHEMA", "severity must be low, medium, or high", "Provide severity as one of: low, medium, high.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "severity must be low, medium, or high",
+            "Provide severity as one of: low, medium, high.",
+        )
     evidence = require_string_list(p.get("evidence", []), "evidence")
     token = optional_token(p.get("submission_token"))
 
@@ -2150,7 +3682,9 @@ def cmd_learn_add(store: Store) -> dict[str, Any]:
         if not path.exists():
             store.append_record(path, fm, "# Manager Learning Log\n\n" + section)
         else:
-            fm_existing, _ = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(path.read_text(encoding="utf-8"))
+            fm_existing, _ = __import__(
+                "manager.core", fromlist=["parse_frontmatter"]
+            ).parse_frontmatter(path.read_text(encoding="utf-8"))
             fm_existing["updated"] = now()
             store.append_record(path, fm_existing, section)
         result = {
@@ -2167,21 +3701,35 @@ def cmd_learn_add(store: Store) -> dict[str, Any]:
 
 def cmd_learn_list(store: Store, limit: int = 20) -> dict[str, Any]:
     if limit <= 0 or limit > 500:
-        raise ManagerError("INVALID_SCHEMA", "limit must be between 1 and 500", "Provide a limit value from 1 through 500.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "limit must be between 1 and 500",
+            "Provide a limit value from 1 through 500.",
+        )
     with store.lock():
         store.initialize()
         path = store.meta / "learning.md"
         if not path.exists():
             return {"records": []}
-        _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(path.read_text(encoding="utf-8"))
+        _, body = __import__("manager.core", fromlist=["parse_frontmatter"]).parse_frontmatter(
+            path.read_text(encoding="utf-8")
+        )
         chunks = re.findall(r"## LEARN-\d{4}\n(.*?)(?=\n## LEARN-|\Z)", body, flags=re.DOTALL)
         ids = re.findall(r"^## (LEARN-\d{4})$", body, flags=re.MULTILINE)
         records: list[dict[str, Any]] = []
         for rid, chunk in zip(ids, chunks):
+
             def field(name: str, default: str = "") -> str:
-                m = re.search(r"^" + re.escape(name) + r":\n(.*?)(?=\n[A-Z_]+:\n|\Z)", chunk, flags=re.MULTILINE | re.DOTALL)
+                m = re.search(
+                    r"^" + re.escape(name) + r":\n(.*?)(?=\n[A-Z_]+:\n|\Z)",
+                    chunk,
+                    flags=re.MULTILINE | re.DOTALL,
+                )
                 return m.group(1).strip() if m else default
-            evidence = [x[2:].strip() for x in field("EVIDENCE", "").splitlines() if x.startswith("- ")]
+
+            evidence = [
+                x[2:].strip() for x in field("EVIDENCE", "").splitlines() if x.startswith("- ")
+            ]
             records.append(
                 {
                     "id": rid,
@@ -2199,10 +3747,13 @@ def cmd_learn_list(store: Store, limit: int = 20) -> dict[str, Any]:
         return {"records": records[-limit:]}
 
 
-
 def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False) -> dict[str, Any]:
     if limit <= 0 or limit > 500:
-        raise ManagerError("INVALID_SCHEMA", "limit must be between 1 and 500", "Provide a limit value from 1 through 500.")
+        raise ManagerError(
+            "INVALID_SCHEMA",
+            "limit must be between 1 and 500",
+            "Provide a limit value from 1 through 500.",
+        )
 
     with store.lock():
         store.initialize()
@@ -2220,7 +3771,9 @@ def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False
         for path in paths:
             inferred_agent_id = sanitize_agent_id(generated_agent_id("learn-from-log"))
             if path.name.startswith("error-") and path.name.endswith("-log.ndjson"):
-                inferred_agent_id = path.name[len("error-") : -len("-log.ndjson")] or inferred_agent_id
+                inferred_agent_id = (
+                    path.name[len("error-") : -len("-log.ndjson")] or inferred_agent_id
+                )
             for line in path.read_text(encoding="utf-8").splitlines():
                 if not line.strip():
                     continue
@@ -2262,7 +3815,9 @@ def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False
             if command:
                 bucket["commands"].add(command)
 
-        ranked = sorted(grouped.values(), key=lambda x: (-int(x["count"]), str(x["error"]), str(x["what"])))
+        ranked = sorted(
+            grouped.values(), key=lambda x: (-int(x["count"]), str(x["error"]), str(x["what"]))
+        )
         rcas: list[dict[str, Any]] = []
         for index, item in enumerate(ranked, 1):
             command_list = sorted(item["commands"])
@@ -2275,14 +3830,19 @@ def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False
                     "first_seen": item["first_seen"],
                     "last_seen": item["last_seen"],
                     "commands": command_list,
-                    "suggested_fix": item["do"] or "Use manager context and schema output to submit the exact required payload.",
+                    "suggested_fix": item["do"]
+                    or "Use manager context and schema output to submit the exact required payload.",
                 }
             )
 
         created_tasks: list[dict[str, str]] = []
         if create_tasks and rcas:
             tasks = store.load_tasks()
-            normalized_titles = {" ".join(task.title.casefold().split()) for task in tasks.values() if task.status != "done"}
+            normalized_titles = {
+                " ".join(task.title.casefold().split())
+                for task in tasks.values()
+                if task.status != "done"
+            }
             for rca in rcas:
                 title = f"Fix manager {rca['error'].lower().replace('_', ' ')}"
                 normalized = " ".join(title.casefold().split())
@@ -2295,7 +3855,9 @@ def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False
                 )
                 done_when = "A single focused fix is validated and ready for one commit."
                 why = f"Error '{rca['what']}' occurred {rca['count']} time(s)."
-                how = "Investigate the failing command flow and apply one code fix for this RCA only."
+                how = (
+                    "Investigate the failing command flow and apply one code fix for this RCA only."
+                )
                 constraints = [
                     "One fix per commit.",
                     "Do not combine unrelated RCA fixes in the same commit.",
@@ -2330,14 +3892,22 @@ def cmd_learn_from_log(store: Store, limit: int = 50, create_tasks: bool = False
             "created_tasks": created_tasks,
             "reminder": ASD_STE100_REMINDER,
         }
+
+
 def cmd_status(store: Store, compact: bool = False, as_json: bool = False) -> str:
     with store.lock():
-        store.initialize(); tasks=store.load_tasks(); counts={s:0 for s in TASK_STATES};
-        for t in tasks.values(): counts[t.status]+=1
-        task=selected_task(store,tasks)
+        store.initialize()
+        tasks = store.load_tasks()
+        counts = {s: 0 for s in TASK_STATES}
+        for t in tasks.values():
+            counts[t.status] += 1
+        task = selected_task(store, tasks)
         step = current_step(store, task) if task and task.status == "active" else None
         role = PHASE_ROLE.get(task.phase) if task and task.phase else None
-        blocked = next((t for t in sorted(tasks.values(), key=lambda x: x.order_key) if t.status == "blocked"), None)
+        blocked = next(
+            (t for t in sorted(tasks.values(), key=lambda x: x.order_key) if t.status == "blocked"),
+            None,
+        )
         blocked_payload = None
         if blocked:
             blocked_payload = {
@@ -2373,7 +3943,13 @@ def cmd_status(store: Store, compact: bool = False, as_json: bool = False) -> st
             return f"OK TASK={compact_payload['task']} PHASE={compact_payload['phase']} STEP={compact_payload['step']} ROLE={compact_payload['role']}\n"
         if as_json:
             return json.dumps(payload, indent=2)
-        lines=[f"MANAGER FORMAT: {FORMAT_VERSION}",f"ROOT: {store.root}",f"COMMIT_MODE: {store.commit_mode()}",f"TOTAL: {len(tasks)}", "STATES: "+" ".join(f"{k}={counts[k]}" for k in sorted(counts))]
+        lines = [
+            f"MANAGER FORMAT: {FORMAT_VERSION}",
+            f"ROOT: {store.root}",
+            f"COMMIT_MODE: {store.commit_mode()}",
+            f"TOTAL: {len(tasks)}",
+            "STATES: " + " ".join(f"{k}={counts[k]}" for k in sorted(counts)),
+        ]
         lines.append(f"CURRENT: {task.id if task else 'NO_TASK'}")
         if blocked_payload:
             lines += [
@@ -2382,14 +3958,15 @@ def cmd_status(store: Store, compact: bool = False, as_json: bool = False) -> st
                 f"RECOVERY: {blocked_payload['recovery']}",
                 f"ACTION: {blocked_payload['action']}",
             ]
-        return "\n".join(lines)+"\n"
+        return "\n".join(lines) + "\n"
 
 
-def cmd_prompt(_: argparse.Namespace) -> str: return PROMPT
+def cmd_prompt(_: argparse.Namespace) -> str:
+    return PROMPT
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p=ManagerArgumentParser(
+    p = ManagerArgumentParser(
         description="Deterministic filesystem-backed agent work orchestrator",
         epilog=(
             "Discovery: use 'manager task --help', 'manager decision --help', "
@@ -2399,37 +3976,81 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--root", default=".", help="workspace root")
-    p.add_argument("--json", action="store_true", help="deprecated: JSON is now the default output format")
+    p.add_argument(
+        "--json", action="store_true", help="deprecated: JSON is now the default output format"
+    )
     p.add_argument("--prompt", action="store_true")
-    sub=p.add_subparsers(dest="command")
-    for name, helptext in [("next","return one execution envelope"),("submit","submit phase result"),("status","show manager status")]:
-        sub.add_parser(name,help=helptext)
-    ss=sub.add_parser("submit-schema", help="return only the currently accepted submit schema")
-    ss.add_argument("--schema-path", action="store_true", help="return only the direct path to the active RETURN_SCHEMA file")
-    sub.add_parser("bootstrap", help="return low-context startup protocol, commands, and compact status")
+    sub = p.add_subparsers(dest="command")
+    for name, helptext in [
+        ("next", "return one execution envelope"),
+        ("submit", "submit phase result"),
+        ("status", "show manager status"),
+    ]:
+        sub.add_parser(name, help=helptext)
+    ss = sub.add_parser("submit-schema", help="return only the currently accepted submit schema")
+    ss.add_argument(
+        "--schema-path",
+        action="store_true",
+        help="return only the direct path to the active RETURN_SCHEMA file",
+    )
+    sub.add_parser(
+        "bootstrap", help="return low-context startup protocol, commands, and compact status"
+    )
     sub.add_parser("verify", help="run manager consistency checks without mutating managed state")
     sub.add_parser("examples", help="show minimal phase submission examples")
-    c=sub.add_parser("context", help="resolve current context"); c.add_argument("ref",nargs="?"); c.add_argument("--compact", action="store_true", help="return a bounded summary projection"); c.add_argument("--max-chars", type=int, default=DEFAULT_CONTEXT_MAX_CHARS, help="max characters for each projected context block")
-    sub.choices["status"].add_argument("--compact", action="store_true", help="emit a single machine-friendly summary line")
-    c=sub.add_parser("block"); c.add_argument("task",nargs="?")
-    c=sub.add_parser("unblock"); c.add_argument("task",nargs="?")
-    task=sub.add_parser("task"); ts=task.add_subparsers(dest="task_command")
-    a=ts.add_parser("add"); a.add_argument("--new-story",action="store_true")
-    pl=ts.add_parser("plan"); pl.add_argument("task",nargs="?")
-    ed=ts.add_parser("edit"); ed.add_argument("task",nargs="?")
-    ex=ts.add_parser("expand"); ex.add_argument("task",nargs="?")
-    f=sub.add_parser("finding"); fs=f.add_subparsers(dest="finding_command"); fs.add_parser("add")
-    e=sub.add_parser("evidence"); es=e.add_subparsers(dest="evidence_command"); es.add_parser("add")
-    d=sub.add_parser("decision"); ds=d.add_subparsers(dest="decision_command"); ds.add_parser("propose"); dr=ds.add_parser("resolve")
-    l=sub.add_parser("learn", help="record and list manual manager improvement issues")
-    ls=l.add_subparsers(dest="learn_command")
+    c = sub.add_parser("context", help="resolve current context")
+    c.add_argument("ref", nargs="?")
+    c.add_argument("--compact", action="store_true", help="return a bounded summary projection")
+    c.add_argument(
+        "--max-chars",
+        type=int,
+        default=DEFAULT_CONTEXT_MAX_CHARS,
+        help="max characters for each projected context block",
+    )
+    sub.choices["status"].add_argument(
+        "--compact", action="store_true", help="emit a single machine-friendly summary line"
+    )
+    c = sub.add_parser("block")
+    c.add_argument("task", nargs="?")
+    c = sub.add_parser("unblock")
+    c.add_argument("task", nargs="?")
+    task = sub.add_parser("task")
+    ts = task.add_subparsers(dest="task_command")
+    a = ts.add_parser("add")
+    a.add_argument("--new-story", action="store_true")
+    pl = ts.add_parser("plan")
+    pl.add_argument("task", nargs="?")
+    ed = ts.add_parser("edit")
+    ed.add_argument("task", nargs="?")
+    ex = ts.add_parser("expand")
+    ex.add_argument("task", nargs="?")
+    f = sub.add_parser("finding")
+    fs = f.add_subparsers(dest="finding_command")
+    fs.add_parser("add")
+    e = sub.add_parser("evidence")
+    es = e.add_subparsers(dest="evidence_command")
+    es.add_parser("add")
+    d = sub.add_parser("decision")
+    ds = d.add_subparsers(dest="decision_command")
+    ds.add_parser("propose")
+    dr = ds.add_parser("resolve")
+    l = sub.add_parser("learn", help="record and list manual manager improvement issues")
+    ls = l.add_subparsers(dest="learn_command")
     ls.add_parser("add", help="append one learning record from stdin JSON")
-    ll=ls.add_parser("list", help="list learning records")
+    ll = ls.add_parser("list", help="list learning records")
     ll.add_argument("--limit", type=int, default=20)
-    lf = ls.add_parser("from-log", help="analyze .manager/runtime/error-<agent-id>-log.ndjson files for RCAs")
+    lf = ls.add_parser(
+        "from-log", help="analyze .manager/runtime/error-<agent-id>-log.ndjson files for RCAs"
+    )
     lf.add_argument("--limit", type=int, default=50)
-    lf.add_argument("--create-tasks", action="store_true", help="create one planned story/task per RCA with one-fix-per-commit constraints")
-    ps=sub.add_parser("plan"); pss=ps.add_subparsers(dest="plan_command"); pss.add_parser("submit")
+    lf.add_argument(
+        "--create-tasks",
+        action="store_true",
+        help="create one planned story/task per RCA with one-fix-per-commit constraints",
+    )
+    ps = sub.add_parser("plan")
+    pss = ps.add_subparsers(dest="plan_command")
+    pss.add_parser("submit")
     return p
 
 
@@ -2457,37 +4078,77 @@ class CommandDispatcher:
         """Execute one parsed command and return its result and mutation flag."""
         store = self._store
         mutating = False
-        if args.command=="next": out=cmd_next(store, as_json=True); mutating=True
-        elif args.command=="context": out=cmd_context(store,args.ref,args.compact,args.max_chars,as_json=True)
-        elif args.command=="submit": out=cmd_submit(store); mutating=True
-        elif args.command=="submit-schema": out=cmd_submit_schema(store, as_json=True, path_only=getattr(args, "schema_path", False))
-        elif args.command=="bootstrap": out=cmd_bootstrap(store, as_json=True)
-        elif args.command=="verify": out=cmd_verify(store, as_json=True)
-        elif args.command=="examples": out=cmd_examples(as_json=True)
-        elif args.command=="status": out=cmd_status(store, compact=getattr(args, "compact", False), as_json=True)
-        elif args.command=="block": out=cmd_task_block(store,args.task); mutating=True
-        elif args.command=="unblock": out=cmd_task_unblock(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="add": out=cmd_task_add(store,args); mutating=True
-        elif args.command=="task" and args.task_command=="plan": out=cmd_plan_task(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="edit": out=cmd_task_edit(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="expand": out=cmd_task_expand(store,args.task); mutating=True
-        elif args.command=="finding" and args.finding_command=="add": out=cmd_finding_add(store); mutating=True
-        elif args.command=="evidence" and args.evidence_command=="add": out=cmd_evidence_add(store); mutating=True
-        elif args.command=="plan" and args.plan_command=="submit":
+        if args.command == "next":
+            out = cmd_next(store, as_json=True)
+            mutating = True
+        elif args.command == "context":
+            out = cmd_context(store, args.ref, args.compact, args.max_chars, as_json=True)
+        elif args.command == "submit":
+            out = cmd_submit(store)
+            mutating = True
+        elif args.command == "submit-schema":
+            out = cmd_submit_schema(
+                store, as_json=True, path_only=getattr(args, "schema_path", False)
+            )
+        elif args.command == "bootstrap":
+            out = cmd_bootstrap(store, as_json=True)
+        elif args.command == "verify":
+            out = cmd_verify(store, as_json=True)
+        elif args.command == "examples":
+            out = cmd_examples(as_json=True)
+        elif args.command == "status":
+            out = cmd_status(store, compact=getattr(args, "compact", False), as_json=True)
+        elif args.command == "block":
+            out = cmd_task_block(store, args.task)
+            mutating = True
+        elif args.command == "unblock":
+            out = cmd_task_unblock(store, args.task)
+            mutating = True
+        elif args.command == "task" and args.task_command == "add":
+            out = cmd_task_add(store, args)
+            mutating = True
+        elif args.command == "task" and args.task_command == "plan":
+            out = cmd_plan_task(store, args.task)
+            mutating = True
+        elif args.command == "task" and args.task_command == "edit":
+            out = cmd_task_edit(store, args.task)
+            mutating = True
+        elif args.command == "task" and args.task_command == "expand":
+            out = cmd_task_expand(store, args.task)
+            mutating = True
+        elif args.command == "finding" and args.finding_command == "add":
+            out = cmd_finding_add(store)
+            mutating = True
+        elif args.command == "evidence" and args.evidence_command == "add":
+            out = cmd_evidence_add(store)
+            mutating = True
+        elif args.command == "plan" and args.plan_command == "submit":
             store.initialize()
-            tasks=store.load_tasks(); task=selected_task(store,tasks)
+            tasks = store.load_tasks()
+            task = selected_task(store, tasks)
             if not task or task.status != "active" or task.phase != "planning":
-                raise ManagerError("INVALID_PHASE", "plan submission is only valid during planning", "Run 'manager next' and follow the planner envelope.")
-            out=cmd_plan_submit(store, task, stdin_json()); mutating=True
-        elif args.command=="decision" and args.decision_command=="propose": out=cmd_decision_propose(store); mutating=True
-        elif args.command=="decision" and args.decision_command=="resolve": out=cmd_decision_resolve(store); mutating=True
+                raise ManagerError(
+                    "INVALID_PHASE",
+                    "plan submission is only valid during planning",
+                    "Run 'manager next' and follow the planner envelope.",
+                )
+            out = cmd_plan_submit(store, task, stdin_json())
+            mutating = True
+        elif args.command == "decision" and args.decision_command == "propose":
+            out = cmd_decision_propose(store)
+            mutating = True
+        elif args.command == "decision" and args.decision_command == "resolve":
+            out = cmd_decision_resolve(store)
+            mutating = True
         elif args.command == "learn" and args.learn_command == "add":
             out = cmd_learn_add(store)
             mutating = True
         elif args.command == "learn" and args.learn_command == "list":
             out = cmd_learn_list(store, args.limit)
         elif args.command == "learn" and args.learn_command == "from-log":
-            out = cmd_learn_from_log(store, limit=args.limit, create_tasks=getattr(args, "create_tasks", False))
+            out = cmd_learn_from_log(
+                store, limit=args.limit, create_tasks=getattr(args, "create_tasks", False)
+            )
             mutating = bool(getattr(args, "create_tasks", False))
         else:
             raise ManagerError(
@@ -2499,20 +4160,26 @@ class CommandDispatcher:
 
 
 def main() -> None:
-    parser=build_parser()
+    parser = build_parser()
     fallback_store = Store(Path("."))
-    if len(sys.argv)==1:
-        msg = ManagerError("NO_COMMAND", "no command provided", "Run 'manager --prompt' for the operating protocol.")
+    if len(sys.argv) == 1:
+        msg = ManagerError(
+            "NO_COMMAND",
+            "no command provided",
+            "Run 'manager --prompt' for the operating protocol.",
+        )
         print(render_manager_error(msg, fallback_store, as_json=True), file=sys.stderr)
         raise SystemExit(2)
     try:
-        args=parser.parse_args()
+        args = parser.parse_args()
     except ManagerError as exc:
         print(render_manager_error(exc, fallback_store, as_json=True), file=sys.stderr)
         raise SystemExit(2)
-    if args.prompt: print(PROMPT,end=""); return
+    if args.prompt:
+        print(PROMPT, end="")
+        return
     stdin_payload = ""
-    store=Store(Path(args.root))
+    store = Store(Path(args.root))
     dispatcher = CommandDispatcher(store)
     reads_stdin = dispatcher.reads_stdin(args)
     output_json = True
@@ -2520,7 +4187,9 @@ def main() -> None:
     try:
         if reads_stdin:
             command_label = "manager " + " ".join(sys.argv[1:]).strip()
-            stdin_payload = read_stdin_with_timeout(sys.stdin, STDIN_READ_TIMEOUT_SECONDS, command_label)
+            stdin_payload = read_stdin_with_timeout(
+                sys.stdin, STDIN_READ_TIMEOUT_SECONDS, command_label
+            )
             sys.stdin = io.StringIO(stdin_payload)
         out, mutating = dispatcher.dispatch(args)
         if mutating:
@@ -2529,8 +4198,10 @@ def main() -> None:
             with store.lock():
                 store.refresh_integrity()
         rendered = emit_output(out, as_json=output_json)
-        print(rendered,end="" if rendered.endswith("\n") else "\n")
-        record_command_outcome(store, sys.argv[1:], stdin_payload, rendered, success=True, command_name=args.command)
+        print(rendered, end="" if rendered.endswith("\n") else "\n")
+        record_command_outcome(
+            store, sys.argv[1:], stdin_payload, rendered, success=True, command_name=args.command
+        )
     except ManagerError as exc:
         schema_path = None
         if exc.code == "INVALID_SCHEMA":
@@ -2540,9 +4211,18 @@ def main() -> None:
                 schema_path = resolve_active_return_schema_path(store)
         elif exc.code == "NO_TASK":
             schema_path = resolve_task_add_schema_path(store)
-        rendered_error = render_manager_error(exc, store, as_json=output_json, schema_path=schema_path)
-        print(rendered_error,file=sys.stderr)
-        record_command_outcome(store, sys.argv[1:], stdin_payload, rendered_error, success=False, command_name=args.command)
+        rendered_error = render_manager_error(
+            exc, store, as_json=output_json, schema_path=schema_path
+        )
+        print(rendered_error, file=sys.stderr)
+        record_command_outcome(
+            store,
+            sys.argv[1:],
+            stdin_payload,
+            rendered_error,
+            success=False,
+            command_name=args.command,
+        )
         raise SystemExit(2)
     except (OSError, ValueError) as exc:
         _ = exc
@@ -2552,8 +4232,17 @@ def main() -> None:
             "Retry the command once. If it fails again, run 'manager status --compact' and inspect diagnostic output.",
         )
         rendered_error = render_manager_error(err, store, as_json=output_json)
-        print(rendered_error,file=sys.stderr)
-        record_command_outcome(store, sys.argv[1:], stdin_payload, rendered_error, success=False, command_name=args.command)
+        print(rendered_error, file=sys.stderr)
+        record_command_outcome(
+            store,
+            sys.argv[1:],
+            stdin_payload,
+            rendered_error,
+            success=False,
+            command_name=args.command,
+        )
         raise SystemExit(2)
 
-if __name__=="__main__": main()
+
+if __name__ == "__main__":
+    main()

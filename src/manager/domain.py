@@ -18,6 +18,7 @@ QUEUE_CLASS = {
     "done": "03-DONE",
 }
 
+
 def parse_task_id(value: str) -> tuple[int, int, tuple[int, ...]]:
     m = TASK_ID_RE.fullmatch(value)
     if not m:
@@ -27,6 +28,7 @@ def parse_task_id(value: str) -> tuple[int, int, tuple[int, ...]]:
 
 def format_task_id(story: int, task: int, subs: tuple[int, ...] = ()) -> str:
     return f"S{story:05d}T{task:05d}" + "".join(f"-{x:07d}" for x in subs)
+
 
 def rel_safe(value: str) -> str:
     if not isinstance(value, str):
