@@ -117,5 +117,5 @@ Runtime implementation uses only the Python standard library.
 
 ## Release
 
-- Application version: 1.0.0rc0 (PEP 440 release candidate)
+- Application version is sourced from the installed distribution metadata generated from `pyproject.toml`.
 - Agent skill entrypoint: skill/manager/SKILL.md
