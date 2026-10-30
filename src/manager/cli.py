@@ -2433,6 +2433,71 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+class CommandDispatcher:
+    """Route parsed commands to their application use cases."""
+
+    def __init__(self, store: Store):
+        self._store = store
+
+    @staticmethod
+    def reads_stdin(args: argparse.Namespace) -> bool:
+        """Return whether the selected command contract requires stdin."""
+        return (
+            args.command == "submit"
+            or args.command == "block"
+            or (args.command == "task" and args.task_command in {"add", "edit"})
+            or (args.command == "finding" and args.finding_command == "add")
+            or (args.command == "evidence" and args.evidence_command == "add")
+            or (args.command == "decision" and args.decision_command in {"propose", "resolve"})
+            or (args.command == "learn" and args.learn_command == "add")
+            or (args.command == "plan" and args.plan_command == "submit")
+        )
+
+    def dispatch(self, args: argparse.Namespace) -> tuple[Any, bool]:
+        """Execute one parsed command and return its result and mutation flag."""
+        store = self._store
+        mutating = False
+                if args.command=="next": out=cmd_next(store, as_json=True); mutating=True
+                elif args.command=="context": out=cmd_context(store,args.ref,args.compact,args.max_chars,as_json=True)
+                elif args.command=="submit": out=cmd_submit(store); mutating=True
+                elif args.command=="submit-schema": out=cmd_submit_schema(store, as_json=True, path_only=getattr(args, "schema_path", False))
+                elif args.command=="bootstrap": out=cmd_bootstrap(store, as_json=True)
+                elif args.command=="verify": out=cmd_verify(store, as_json=True)
+                elif args.command=="examples": out=cmd_examples(as_json=True)
+                elif args.command=="status": out=cmd_status(store, compact=getattr(args, "compact", False), as_json=True)
+                elif args.command=="block": out=cmd_task_block(store,args.task); mutating=True
+                elif args.command=="unblock": out=cmd_task_unblock(store,args.task); mutating=True
+                elif args.command=="task" and args.task_command=="add": out=cmd_task_add(store,args); mutating=True
+                elif args.command=="task" and args.task_command=="plan": out=cmd_plan_task(store,args.task); mutating=True
+                elif args.command=="task" and args.task_command=="edit": out=cmd_task_edit(store,args.task); mutating=True
+                elif args.command=="task" and args.task_command=="expand": out=cmd_task_expand(store,args.task); mutating=True
+                elif args.command=="finding" and args.finding_command=="add": out=cmd_finding_add(store); mutating=True
+                elif args.command=="evidence" and args.evidence_command=="add": out=cmd_evidence_add(store); mutating=True
+                elif args.command=="plan" and args.plan_command=="submit":
+                    store.initialize()
+                    tasks=store.load_tasks(); task=selected_task(store,tasks)
+                    if not task or task.status != "active" or task.phase != "planning":
+                        raise ManagerError("INVALID_PHASE", "plan submission is only valid during planning", "Run 'manager next' and follow the planner envelope.")
+                    out=cmd_plan_submit(store, task, stdin_json()); mutating=True
+                elif args.command=="decision" and args.decision_command=="propose": out=cmd_decision_propose(store); mutating=True
+                elif args.command=="decision" and args.decision_command=="resolve": out=cmd_decision_resolve(store); mutating=True
+                elif args.command == "learn" and args.learn_command == "add":
+                    out = cmd_learn_add(store)
+                    mutating = True
+                elif args.command == "learn" and args.learn_command == "list":
+                    out = cmd_learn_list(store, args.limit)
+                elif args.command == "learn" and args.learn_command == "from-log":
+                    out = cmd_learn_from_log(store, limit=args.limit, create_tasks=getattr(args, "create_tasks", False))
+                    mutating = bool(getattr(args, "create_tasks", False))
+                else:
+                    raise ManagerError(
+                        "INVALID_COMMAND",
+                        "unsupported or incomplete command",
+                        "Run 'manager --prompt' to view the command protocol and valid command sequence.",
+                    )
+        return out, mutating
+
+
 def main() -> None:
     parser=build_parser()
     fallback_store = Store(Path("."))
@@ -2447,17 +2512,9 @@ def main() -> None:
         raise SystemExit(2)
     if args.prompt: print(PROMPT,end=""); return
     stdin_payload = ""
-    reads_stdin = (
-        args.command == "submit"
-        or args.command == "block"
-        or (args.command == "task" and args.task_command in {"add", "edit"})
-        or (args.command == "finding" and args.finding_command == "add")
-        or (args.command == "evidence" and args.evidence_command == "add")
-        or (args.command == "decision" and args.decision_command in {"propose", "resolve"})
-        or (args.command == "learn" and args.learn_command == "add")
-        or (args.command == "plan" and args.plan_command == "submit")
-    )
     store=Store(Path(args.root))
+    dispatcher = CommandDispatcher(store)
+    reads_stdin = dispatcher.reads_stdin(args)
     output_json = True
     mutating = False
     try:
@@ -2465,44 +2522,7 @@ def main() -> None:
             command_label = "manager " + " ".join(sys.argv[1:]).strip()
             stdin_payload = read_stdin_with_timeout(sys.stdin, STDIN_READ_TIMEOUT_SECONDS, command_label)
             sys.stdin = io.StringIO(stdin_payload)
-        if args.command=="next": out=cmd_next(store, as_json=True); mutating=True
-        elif args.command=="context": out=cmd_context(store,args.ref,args.compact,args.max_chars,as_json=True)
-        elif args.command=="submit": out=cmd_submit(store); mutating=True
-        elif args.command=="submit-schema": out=cmd_submit_schema(store, as_json=True, path_only=getattr(args, "schema_path", False))
-        elif args.command=="bootstrap": out=cmd_bootstrap(store, as_json=True)
-        elif args.command=="verify": out=cmd_verify(store, as_json=True)
-        elif args.command=="examples": out=cmd_examples(as_json=True)
-        elif args.command=="status": out=cmd_status(store, compact=getattr(args, "compact", False), as_json=True)
-        elif args.command=="block": out=cmd_task_block(store,args.task); mutating=True
-        elif args.command=="unblock": out=cmd_task_unblock(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="add": out=cmd_task_add(store,args); mutating=True
-        elif args.command=="task" and args.task_command=="plan": out=cmd_plan_task(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="edit": out=cmd_task_edit(store,args.task); mutating=True
-        elif args.command=="task" and args.task_command=="expand": out=cmd_task_expand(store,args.task); mutating=True
-        elif args.command=="finding" and args.finding_command=="add": out=cmd_finding_add(store); mutating=True
-        elif args.command=="evidence" and args.evidence_command=="add": out=cmd_evidence_add(store); mutating=True
-        elif args.command=="plan" and args.plan_command=="submit":
-            store.initialize()
-            tasks=store.load_tasks(); task=selected_task(store,tasks)
-            if not task or task.status != "active" or task.phase != "planning":
-                raise ManagerError("INVALID_PHASE", "plan submission is only valid during planning", "Run 'manager next' and follow the planner envelope.")
-            out=cmd_plan_submit(store, task, stdin_json()); mutating=True
-        elif args.command=="decision" and args.decision_command=="propose": out=cmd_decision_propose(store); mutating=True
-        elif args.command=="decision" and args.decision_command=="resolve": out=cmd_decision_resolve(store); mutating=True
-        elif args.command == "learn" and args.learn_command == "add":
-            out = cmd_learn_add(store)
-            mutating = True
-        elif args.command == "learn" and args.learn_command == "list":
-            out = cmd_learn_list(store, args.limit)
-        elif args.command == "learn" and args.learn_command == "from-log":
-            out = cmd_learn_from_log(store, limit=args.limit, create_tasks=getattr(args, "create_tasks", False))
-            mutating = bool(getattr(args, "create_tasks", False))
-        else:
-            raise ManagerError(
-                "INVALID_COMMAND",
-                "unsupported or incomplete command",
-                "Run 'manager --prompt' to view the command protocol and valid command sequence.",
-            )
+        out, mutating = dispatcher.dispatch(args)
         if mutating:
             # The integrity manifest is itself manager-owned state; its mutation must
             # occur under the same exclusive workspace lock as every other mutation.
