@@ -524,6 +524,7 @@ class Store:
 
     def update_workspace_active(self, active_hint: str | None = None) -> None:
         path = self.meta / "workspace.md"
+        self.validate_managed_write_path(path)
         if not path.exists():
             return
         vals, body = parse_frontmatter(path.read_text(encoding="utf-8"))
@@ -1141,6 +1142,7 @@ class Store:
         protect(path)
 
     def append_record(self, path: Path, fm: dict[str, Any], section: str) -> None:
+        self.validate_managed_write_path(path)
         if path.exists():
             oldfm, body = parse_frontmatter(path.read_text(encoding="utf-8"))
             oldfm.update(fm)
@@ -1258,6 +1260,8 @@ class Store:
         return self.git_repository.git_commit(paths, message, allow_empty=allow_empty)
 
     def rebuild_index(self) -> None:
+        index_path = self.meta / "index.md"
+        self.validate_managed_write_path(index_path)
         tasks = self.load_tasks(validate=False)
         lines = [
             frontmatter({"type": "index", "format_version": FORMAT_VERSION, "updated": now()}),
@@ -1266,8 +1270,8 @@ class Store:
         ]
         for t in sorted(tasks.values(), key=lambda x: x.order_key):
             lines.append(f"- [{t.id}]({Path('tasks') / t.path.name}) — {t.status} — {t.title}")
-        atomic_write(self.meta / "index.md", "\n".join(lines).rstrip() + "\n")
-        protect(self.meta / "index.md")
+        atomic_write(index_path, "\n".join(lines).rstrip() + "\n")
+        protect(index_path)
 
     def validate(self) -> None:
         if not self.meta.exists():
@@ -1703,6 +1707,8 @@ class Store:
                         )
 
     def refresh_integrity(self) -> None:
+        integrity_path = self.meta / "integrity.json"
+        self.validate_managed_write_path(integrity_path)
         records = {}
         if not self.meta.exists():
             return
@@ -1713,10 +1719,8 @@ class Store:
             if integrity_ignored(rel, path.name):
                 continue
             records[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
-        atomic_write(
-            self.meta / "integrity.json", json.dumps(records, indent=2, sort_keys=True) + "\n"
-        )
-        protect(self.meta / "integrity.json")
+        atomic_write(integrity_path, json.dumps(records, indent=2, sort_keys=True) + "\n")
+        protect(integrity_path)
 
     def validate_integrity(self) -> None:
         path = self.meta / "integrity.json"
