@@ -267,6 +267,56 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         handler.assert_called_once_with(dispatcher._store, as_json=True)
 
 
+    def test_git_repository_owns_git_discovery_and_status(self):
+        from manager.git_repository import GitRepository
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            subprocess.run(["git", "init", str(root)], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(root), "config", "user.email", "manager-tests@example.invalid"],
+                check=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(root), "config", "user.name", "Manager Tests"],
+                check=True,
+                capture_output=True,
+            )
+            tracked = root / "tracked.txt"
+            tracked.write_text("initial\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "tracked.txt"], check=True, capture_output=True)
+            subprocess.run(
+                ["git", "-C", str(root), "commit", "-m", "initial"],
+                check=True,
+                capture_output=True,
+            )
+
+            repository = GitRepository(root)
+            available, git_root = repository.git_info()
+            self.assertTrue(available)
+            self.assertEqual(Path(git_root), root.resolve())
+            self.assertTrue(repository.git_head())
+
+            (root / "changed.txt").write_text("changed\n", encoding="utf-8")
+            (root / ".manager").mkdir()
+            (root / ".manager" / "private.json").write_text("{}", encoding="utf-8")
+            self.assertEqual(repository.git_status_paths(), ["changed.txt"])
+
+            store = Store(root)
+            self.assertEqual(store.git_head(), repository.git_head())
+
+    def test_git_repository_reports_missing_git_explicitly(self):
+        from manager.git_repository import GitRepository
+
+        repository = GitRepository(Path("."))
+        with mock.patch("manager.git_repository.shutil.which", return_value=None):
+            self.assertEqual(repository.git_info(), (False, None))
+            with self.assertRaises(ManagerError) as raised:
+                repository.git(["status"])
+        self.assertEqual(raised.exception.code, "GIT_UNAVAILABLE")
+
+
 class ManagerTests(unittest.TestCase):
 
     def test_final_review_correction_uses_monotonic_step_id_and_ready_gate(self):
