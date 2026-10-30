@@ -69,3 +69,12 @@ Optional helper fields:
 ## Compatibility Note
 
 Rendered text remains useful for local debugging and legacy tests, but it is not the normative integration surface.
+
+
+## State Mutation Guarantees
+
+- Agent payloads are proposals. Manager validates them before applying authoritative changes.
+- Ordinary reads and startup validation must not repair or normalize authoritative records on disk.
+- Integrity mismatches are rejected. They are not automatically accepted by refreshing the integrity manifest.
+- A rejected operation must leave authoritative managed records unchanged. Diagnostic logs are excluded from this guarantee.
+- Rejection of one request must not independently block unrelated valid operations.
