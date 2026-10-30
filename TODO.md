@@ -65,3 +65,6 @@
 - The initial implementation change removes an implicit write from task loading. This is a narrow prevention fix, not proof that all read paths are now side-effect-free.
 
 Implementation update: startup recovery has been removed; initialization now validates existing state and rejects detected integrity mismatches.
+
+
+Implementation update: task loading no longer writes normalized identifiers. Initialization now checks the existing integrity manifest before creating workspace metadata, does not reconcile lifecycle state, and does not refresh integrity after a mismatch. The implicit reconciliation and repair-eligibility methods were removed. Regression tests cover non-mutating task loads, rejection of lifecycle tampering, and no recreation of an integrity-protected deleted workspace file. Tests have not been executed in this session.
