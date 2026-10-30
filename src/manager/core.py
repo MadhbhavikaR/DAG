@@ -12,25 +12,21 @@ import stat
 import subprocess
 import tempfile
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
 
+from .domain import TASK_ID_RE, QUEUE_CLASS, parse_task_id, format_task_id
+from .errors import ManagerError
+from .step import Step
+from .submission import Submission
+from .task import Task
+
 FORMAT_VERSION = "1.0.0"
-TASK_ID_RE = re.compile(r"^S(?P<story>\d{5})T(?P<task>\d{5})(?P<subs>(?:-\d{7})*)$")
 STEP_ID_RE = re.compile(r"^STEP-\d{4}$")
 RECORD_ID_RE = re.compile(r"^(FINDING|DEC|EVT)-\d{4}$")
 TASK_FILE_RE = re.compile(
     r"^TODO-(?P<queue>\d{2})-(?P<class>ACTIVE|DRAFT|TODO|BLOCKED|DONE)-(?P<priority>\d{2})-(?P<id>S\d{5}T\d{5}(?:-\d{7})*)\.md$"
 )
-QUEUE_CLASS = {
-    "active": "00-ACTIVE",
-    "draft": "01-DRAFT",
-    "planned": "01-TODO",
-    "expand": "01-TODO",
-    "blocked": "02-BLOCKED",
-    "done": "03-DONE",
-}
 TASK_STATES = {"draft", "planned", "active", "expand", "blocked", "done"}
 TASK_TRANSITIONS = {
     "draft": {"draft", "planned", "blocked"},
@@ -73,28 +69,12 @@ def require_timestamp(value: str, label: str) -> None:
         raise ValueError(f"{label} must be an ISO-8601 timestamp with an explicit offset")
 
 
-class ManagerError(Exception):
-    def __init__(self, code: str, what: str, do: str):
-        self.code, self.what, self.do = code, what, do
-        super().__init__(what)
-
-    def render(self) -> str:
-        return f"ERROR: {self.code}\nWHAT: {self.what}\nDO: {self.do}"
 
 
 def fail(code: str, what: str, do: str) -> None:
     raise ManagerError(code, what, do)
 
 
-def parse_task_id(value: str) -> tuple[int, int, tuple[int, ...]]:
-    m = TASK_ID_RE.fullmatch(value)
-    if not m:
-        raise ValueError(f"invalid task ID '{value}'")
-    return int(m["story"]), int(m["task"]), tuple(int(x) for x in m["subs"].split("-") if x)
-
-
-def format_task_id(story: int, task: int, subs: tuple[int, ...] = ()) -> str:
-    return f"S{story:05d}T{task:05d}" + "".join(f"-{x:07d}" for x in subs)
 
 
 def normalize_agent_id(value: str) -> str:
@@ -232,71 +212,10 @@ def fm_value(value: Any) -> str:
     return str(value)
 
 
-@dataclass
-class Task:
-    path: Path
-    id: str
-    title: str
-    parent: str | None
-    sequence: int
-    priority: int
-    status: str
-    phase: str | None = None
-    current_step: str | None = None
-    commit_mode: str = "disabled"
-    blocker: str = ""
-    created: str = ""
-    updated: str = ""
-    analysis: str | None = None
-    decisions: str | None = None
-    evidence: str | None = None
-    final_validation: list[str] = field(default_factory=list)
-    git_base: list[str] = field(default_factory=list)
-    git_base_head: str = ""
-    agent_id: str = ""
-    final_commit_id: str = ""
-    final_commit_message: str = ""
-    body: str = ""
-
-    @property
-    def order_key(self) -> tuple[int, int, tuple[int, ...]]:
-        return parse_task_id(self.id)
-
-    @property
-    def filename(self) -> str:
-        q, cls = QUEUE_CLASS[self.status].split("-", 1)
-        return f"TODO-{q}-{cls}-{self.priority:02d}-{self.id}.md"
 
 
-@dataclass
-class Step:
-    id: str
-    task: str
-    sequence: int
-    status: str
-    role: str
-    title: str
-    action: str
-    accept: list[str] = field(default_factory=list)
-    load: list[str] = field(default_factory=list)
-    may_edit: list[str] = field(default_factory=list)
-    validation: list[str] = field(default_factory=list)
-    commit_policy: str = "required"
-    commit_type: str = "chore"
-    created: str = ""
-    updated: str = ""
-    result: str = "Pending"
-    commit_id: str = ""
-    commit_message: str = ""
-    validation_event: str = ""
-    commit_base_head: str = ""
 
 
-@dataclass
-class Submission:
-    token: str
-    fingerprint: str
-    response: str
 
 
 class Store:
