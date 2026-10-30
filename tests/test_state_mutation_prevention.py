@@ -147,6 +147,12 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
             self.store.save_step(step)
         self.assertEqual(missing.exception.code, "INVALID_TASK_REFERENCE")
 
+        step.task = task.id
+        step.id = "../workspace"
+        with self.assertRaises(ManagerError) as unsafe_id:
+            self.store.save_step(step)
+        self.assertEqual(unsafe_id.exception.code, "INVALID_STEP_ID")
+
     def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
         agent_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
         task = Task(
