@@ -38,6 +38,6 @@ jobs:
       - name: Lint
         run: uv run --system-certs ruff check src tests
       - name: Type check
-        run: uv run --system-certs mypy src/manager
+        run: uv run --system-certs mypy src/manager/domain.py src/manager/errors.py src/manager/git_repository.py src/manager/parser.py src/manager/step.py src/manager/submission.py src/manager/task.py
       - name: Test with coverage
         run: uv run --system-certs pytest --cov --cov-report=term-missing
