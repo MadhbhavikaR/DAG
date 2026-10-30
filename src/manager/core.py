@@ -905,6 +905,20 @@ class Store:
                 "a persisted step ID, sequence, and creation time cannot be changed",
                 "Keep the existing step identity fields unchanged and update only mutable step fields.",
             )
+        if existing_step is not None:
+            allowed = STEP_TRANSITIONS.get(existing_step.status, set())
+            if step.status not in allowed:
+                fail(
+                    "INVALID_STEP_TRANSITION",
+                    f"step {step.id} cannot transition from {existing_step.status} to {step.status}",
+                    "Use a valid Manager step lifecycle transition before saving the step.",
+                )
+        elif step.status != ("ready" if step.sequence == 1 else "queued"):
+            fail(
+                "INVALID_STEP_TRANSITION",
+                f"new step {step.id} cannot start in state {step.status}",
+                "Create the first step as ready and later steps as queued.",
+            )
         proposed_steps = [item for item in current_steps if item.id != step.id]
         proposed_steps.append(step)
         proposed_steps.sort(key=lambda item: item.sequence)
