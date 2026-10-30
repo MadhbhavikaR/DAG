@@ -405,6 +405,30 @@ class Store:
         return frontmatter(fm) + body
 
     def save_task(self, task: Task) -> None:
+        if not isinstance(task.status, str) or task.status not in TASK_STATES:
+            fail(
+                "INVALID_TASK",
+                "task status is not a supported lifecycle state",
+                "Use a Manager-defined task lifecycle state before saving the task.",
+            )
+        if (
+            not isinstance(task.priority, int)
+            or isinstance(task.priority, bool)
+            or not 0 <= task.priority <= 99
+        ):
+            fail(
+                "INVALID_TASK",
+                "task priority must be an integer from 0 through 99",
+                "Provide a valid task priority before saving the task.",
+            )
+        try:
+            parse_task_id(task.id)
+        except (TypeError, ValueError) as exc:
+            fail(
+                "INVALID_TASK_ID",
+                f"task has an invalid identifier: {exc}",
+                "Use a canonical Manager task ID before saving the task.",
+            )
         source_path = task.path
         desired = self.tasks_dir / task.filename
         if desired.exists() and desired != source_path:
