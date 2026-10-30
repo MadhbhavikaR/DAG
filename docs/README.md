@@ -10,7 +10,7 @@ This directory contains durable documentation for manager behavior and contracts
 
 ## Architecture Decisions
 
-- [adr/](./adr): Historical architecture decision records.
+- [adr/](./adr): Historical architecture decision records, including [ADR-048](./adr/ADR-048-domain-model-boundaries-and-command-dispatch.md) for domain-model and command-dispatch boundaries.
 
 ## Specs
 
