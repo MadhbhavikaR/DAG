@@ -63,3 +63,5 @@
 - Current persistence is filesystem-backed. Individual writes use atomic replacement, but a multi-file workflow is not thereby atomic.
 - Store remains a broad facade; do not undertake a wholesale rewrite before mutation paths and invariants are covered by tests.
 - The initial implementation change removes an implicit write from task loading. This is a narrow prevention fix, not proof that all read paths are now side-effect-free.
+
+Implementation update: startup recovery has been removed; initialization now validates existing state and rejects detected integrity mismatches.
