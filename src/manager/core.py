@@ -979,6 +979,28 @@ class Store:
                 )
 
     def save_step(self, step: Step) -> None:
+        if not isinstance(step.task, str) or not step.task:
+            fail(
+                "INVALID_TASK_REFERENCE",
+                "step task reference must be a non-empty task ID",
+                "Use an existing task ID returned by Manager before creating or updating a step.",
+            )
+        if not isinstance(step.id, str) or STEP_ID_RE.fullmatch(step.id) is None:
+            fail(
+                "INVALID_STEP_ID",
+                "step ID must use the canonical STEP-NNNN format",
+                "Use the next canonical step ID assigned by Manager.",
+            )
+        if (
+            not isinstance(step.sequence, int)
+            or isinstance(step.sequence, bool)
+            or step.sequence < 1
+        ):
+            fail(
+                "INVALID_STEP",
+                "step sequence must be a positive integer",
+                "Use the next contiguous step sequence assigned by Manager.",
+            )
         tasks = self.load_tasks()
         task = tasks.get(step.task)
         if task is None:
