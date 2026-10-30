@@ -68,3 +68,6 @@ Implementation update: startup recovery has been removed; initialization now val
 
 
 Implementation update: task loading no longer writes normalized identifiers. Initialization now checks the existing integrity manifest before creating workspace metadata, does not reconcile lifecycle state, and does not refresh integrity after a mismatch. The implicit reconciliation and repair-eligibility methods were removed. Regression tests cover non-mutating task loads, rejection of lifecycle tampering, and no recreation of an integrity-protected deleted workspace file. Tests have not been executed in this session.
+
+
+Architecture decision: [ADR-049 — Fail-Closed Managed-State Initialization](docs/adr/ADR-049-fail-closed-managed-state-initialization.md). The remaining high-risk work is transactional mutation boundaries and process-level agent isolation; both require broader implementation and adversarial tests.
