@@ -358,6 +358,12 @@ class Store:
         return changed
 
     def initialize(self) -> None:
+        # Check the persisted integrity snapshot before creating missing
+        # metadata or workspace records. Otherwise a read could recreate a
+        # deleted authoritative file and only then discover the mismatch.
+        if self.meta.exists():
+            self.reject_managed_symlinks()
+            self.validate_integrity()
         self.initialize_dirs()
         version = self.meta / "VERSION"
         if version.exists() and version.read_text(encoding="utf-8").strip() != FORMAT_VERSION:
