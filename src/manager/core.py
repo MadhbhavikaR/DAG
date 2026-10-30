@@ -887,14 +887,31 @@ class Store:
                 or not isinstance(step.title, str)
                 or not isinstance(step.action, str)
                 or not isinstance(step.accept, list)
+                or not all(isinstance(item, str) and item.strip() for item in step.accept)
+                or not isinstance(step.load, list)
+                or not all(isinstance(item, str) and item.strip() for item in step.load)
+                or not isinstance(step.may_edit, list)
+                or not all(isinstance(item, str) and item.strip() for item in step.may_edit)
                 or not isinstance(step.validation, list)
+                or not all(isinstance(item, str) and item.strip() for item in step.validation)
                 or not isinstance(step.commit_policy, str)
                 or not isinstance(step.commit_type, str)
+                or not isinstance(step.created, str)
+                or not isinstance(step.updated, str)
             ):
                 fail(
                     "INVALID_STEP",
                     f"step in {task_id} contains invalid field types or identity",
                     "Provide a canonical step ID, positive sequence, valid state, and typed step fields.",
+                )
+            try:
+                require_timestamp(step.created, "step.created")
+                require_timestamp(step.updated, "step.updated")
+            except ValueError as exc:
+                fail(
+                    "INVALID_STEP",
+                    f"step {step.id} has an invalid timestamp: {exc}",
+                    "Provide ISO-8601 step timestamps with explicit offsets.",
                 )
             if step.id in seen_ids or step.sequence in seen_sequences:
                 fail(
