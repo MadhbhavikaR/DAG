@@ -30,6 +30,18 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
         self.assertEqual(error.exception.code, "MANAGED_FILE_TAMPERED")
         self.assertFalse(workspace.exists())
 
+    def test_malformed_integrity_manifest_is_rejected_without_traceback(self):
+        self.store.refresh_integrity()
+        manifest = self.store.meta / "integrity.json"
+        manifest.chmod(0o644)
+        manifest.write_text("[]\n", encoding="utf-8")
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.initialize()
+
+        self.assertEqual(error.exception.code, "CORRUPT_STATE")
+        self.assertIn("integrity manifest", error.exception.what)
+
     def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
         agent_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
         task = Task(
