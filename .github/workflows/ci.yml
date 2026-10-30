@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["main", "DAG-Template-Python", "DAG-Manager"]
+    branches: ["main", "DAG-Template-Python", "DAG-Manager", "Manager"]
   pull_request:
-    branches: ["main", "DAG-Template-Python", "DAG-Manager"]
+    branches: ["main", "DAG-Template-Python", "DAG-Manager", "Manager"]
   workflow_dispatch:
 
 permissions:
