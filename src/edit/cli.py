@@ -13,6 +13,7 @@ from .editor import FileEditor
 from .errors import AgentArgumentParser, ErrorHandler, ToolError
 from .filesystem import FileSystemManager
 from .output import Output
+from .ports import FileSystemPort
 
 
 PROMPT = """edit PROTOCOL (one text file, JSON out; --human for people)
@@ -79,9 +80,11 @@ class JsonRequestDispatcher:
         self,
         input_reader: StandardInput,
         editor_factory: Callable[[Path, Output], FileEditor] = FileEditor,
+        filesystem: FileSystemPort | None = None,
     ) -> None:
         self.input_reader = input_reader
         self.editor_factory = editor_factory
+        self.filesystem = filesystem or FileSystemManager()
 
     def dispatch(self, output: Output) -> int:
         raw = self.input_reader.read()
@@ -105,7 +108,7 @@ class JsonRequestDispatcher:
             ErrorHandler.fail("MISSING_FILE", "file is required.")
 
         path = Path(filename)
-        FileSystemManager.cleanup_transactions(path)
+        self.filesystem.cleanup_transactions(path)
         editor = self.editor_factory(path, output)
         value = request.get("input")
         if value is not None and not isinstance(value, str):
@@ -156,13 +159,15 @@ class CommandDispatcher:
         self,
         input_reader: StandardInput,
         editor_factory: Callable[[Path, Output], FileEditor] = FileEditor,
+        filesystem: FileSystemPort | None = None,
     ) -> None:
         self.input_reader = input_reader
         self.editor_factory = editor_factory
+        self.filesystem = filesystem or FileSystemManager()
 
     def dispatch(self, args: argparse.Namespace, output: Output) -> int:
         path = Path(args.file)
-        FileSystemManager.cleanup_transactions(path)
+        self.filesystem.cleanup_transactions(path)
         editor = self.editor_factory(path, output)
 
         if args.command == "rewrite":
