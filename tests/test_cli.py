@@ -235,7 +235,7 @@ def test_json_input_mode_works_without_a_subcommand(tmp_path: Path) -> None:
     request = json.dumps({
         "command": "create",
         "file": str(target),
-        "input": "alpha\\nbeta\\n",
+        "input": "alpha\nbeta\n",
     })
 
     result = run_cli("--json-input", input_text=request)
@@ -246,7 +246,7 @@ def test_json_input_mode_works_without_a_subcommand(tmp_path: Path) -> None:
         "operation": "create",
         "lines": 2,
     }
-    assert target.read_text(encoding="utf-8") == "alpha\\nbeta\\n"
+    assert target.read_text(encoding="utf-8") == "alpha\nbeta\n"
 
 
 def test_mutation_registry_supports_additional_commands() -> None:
@@ -262,4 +262,4 @@ def test_mutation_registry_supports_additional_commands() -> None:
     command = registry.get("noop")
 
     assert isinstance(command, NoOpCommand)
-    assert command.execute(["line\\n"], 0, 0, None, "\\n") == (["line\\n"], 0, "noop")
+    assert command.execute(["line\n"], 0, 0, None, "\n") == (["line\n"], 0, "noop")
