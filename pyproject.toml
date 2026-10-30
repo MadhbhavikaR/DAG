@@ -1,5 +1,5 @@
 [project]
-name = "dag-edit"
+name = "edit"
 version = "0.1.0"
 description = "Context-anchored JSON-first single-file editor."
 readme = "README.md"
