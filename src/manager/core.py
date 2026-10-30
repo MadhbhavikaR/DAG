@@ -404,6 +404,30 @@ class Store:
         body = task.body.rstrip() + "\n"
         return frontmatter(fm) + body
 
+    def validate_managed_write_path(self, path: Path) -> None:
+        if self.meta.is_symlink():
+            fail(
+                "MANAGED_PATH_SYMLINK",
+                ".manager is a symbolic link",
+                "Replace .manager with the canonical managed directory before retrying.",
+            )
+        self.reject_managed_symlinks()
+        try:
+            resolved = path.resolve(strict=False)
+            managed_root = self.meta.resolve()
+        except OSError as exc:
+            fail(
+                "INVALID_MANAGED_PATH",
+                f"cannot resolve managed write path: {exc}",
+                "Use a canonical path under the Manager-managed directory.",
+            )
+        if path.is_symlink() or not resolved.is_relative_to(managed_root):
+            fail(
+                "INVALID_MANAGED_PATH",
+                "managed write path is a symlink or escapes the Manager state directory",
+                "Use a regular file path inside the Manager-managed directory.",
+            )
+
     def save_task(self, task: Task) -> None:
         if not isinstance(task.status, str) or task.status not in TASK_STATES:
             fail(
@@ -431,6 +455,7 @@ class Store:
             )
         source_path = task.path
         desired = self.tasks_dir / task.filename
+        self.validate_managed_write_path(desired)
         if desired.exists() and desired != source_path:
             fail(
                 "TASK_FILENAME_CONFLICT",
@@ -1027,6 +1052,7 @@ class Store:
                 "Use an existing task ID returned by Manager before creating or updating a step.",
             )
         path = self.steps_dir / f"{step.task}-{step.id}.md"
+        self.validate_managed_write_path(path)
         current_steps = self.load_steps(step.task)
         existing_step = next((item for item in current_steps if item.id == step.id), None)
         if existing_step is not None and (
@@ -1110,6 +1136,7 @@ class Store:
         protect(path)
 
     def save_record(self, path: Path, fm: dict[str, Any], body: str) -> None:
+        self.validate_managed_write_path(path)
         atomic_write(path, frontmatter(fm) + body.rstrip() + "\n")
         protect(path)
 
