@@ -416,6 +416,13 @@ class Store:
                     "Keep the existing task ID and update only mutable task fields.",
                 )
         tasks = self.load_tasks(validate=False)
+        previous = tasks.get(task.id)
+        if previous is not None and task.status not in TASK_TRANSITIONS.get(previous.status, set()):
+            fail(
+                "INVALID_TRANSITION",
+                f"task {task.id} cannot transition from {previous.status} to {task.status}",
+                "Use a valid Manager lifecycle transition before saving the task.",
+            )
         if task.id in tasks and not task.path.exists():
             fail(
                 "DUPLICATE_TASK_ID",
