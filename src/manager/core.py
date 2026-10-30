@@ -866,6 +866,20 @@ class Store:
                 "Use an existing task ID returned by Manager before creating or updating a step.",
             )
         path = self.steps_dir / f"{step.task}-{step.id}.md"
+        current_steps = self.load_steps(step.task)
+        existing_step = next((item for item in current_steps if item.id == step.id), None)
+        if existing_step is not None and (
+            existing_step.sequence != step.sequence or existing_step.created != step.created
+        ):
+            fail(
+                "IMMUTABLE_STEP_IDENTITY",
+                "a persisted step ID, sequence, and creation time cannot be changed",
+                "Keep the existing step identity fields unchanged and update only mutable step fields.",
+            )
+        proposed_steps = [item for item in current_steps if item.id != step.id]
+        proposed_steps.append(step)
+        proposed_steps.sort(key=lambda item: item.sequence)
+        self.validate_steps(step.task, proposed_steps)
         if path.exists():
             try:
                 existing_fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
