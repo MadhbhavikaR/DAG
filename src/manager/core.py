@@ -415,8 +415,18 @@ class Store:
                     "a persisted task ID cannot be changed",
                     "Keep the existing task ID and update only mutable task fields.",
                 )
-            if task.path != desired:
-                task.path.unlink()
+        tasks = self.load_tasks(validate=False)
+        if task.id in tasks and not task.path.exists():
+            fail(
+                "DUPLICATE_TASK_ID",
+                f"task ID {task.id} already exists",
+                "Load the existing task record and update it instead of creating a duplicate.",
+            )
+        proposed_tasks = dict(tasks)
+        proposed_tasks[task.id] = task
+        self.validate_tasks(proposed_tasks)
+        if task.path.exists() and task.path != desired:
+            task.path.unlink()
         task.path = desired
         atomic_write(desired, self.task_document(task))
         protect(desired)
