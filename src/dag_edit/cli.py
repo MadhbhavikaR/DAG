@@ -12,17 +12,17 @@ from .output import Output
 
 
 class CLI:
-    PROMPT = """edit.py PROTOCOL (one text file, JSON out; --human for people)
+    PROMPT = """edit PROTOCOL (one text file, JSON out; --human for people)
 stdin carries content and search text.
 
-CREATE   printf '%s\\n' 'l1' 'l2' | ./edit.py create FILE      (fails if FILE exists)
-REWRITE  printf '%s\\n' 'l1' 'l2' | ./edit.py rewrite FILE     (replaces all of FILE)
-SEARCH   printf '%s' 'text' | ./edit.py search FILE      (literal; --regex opt-in; max 5 hits)
-READ     ./edit.py read FILE HASH [BEFORE AFTER]
-REPLACE  printf '%s\\n' 'new' | ./edit.py replace FILE HASH
-         printf '%s\\n' 'a' 'b' | ./edit.py replace FILE START..END
-INSERT   printf '%s\\n' 'new' | ./edit.py insert before|after FILE HASH
-DELETE   ./edit.py delete FILE HASH        ./edit.py delete FILE START..END
+CREATE   printf '%s\\n' 'l1' 'l2' | edit create FILE      (fails if FILE exists)
+REWRITE  printf '%s\\n' 'l1' 'l2' | edit rewrite FILE     (replaces all of FILE)
+SEARCH   printf '%s' 'text' | edit search FILE      (literal; --regex opt-in; max 5 hits)
+READ     edit read FILE HASH [BEFORE AFTER]
+REPLACE  printf '%s\\n' 'new' | edit replace FILE HASH
+         printf '%s\\n' 'a' 'b' | edit replace FILE START..END
+INSERT   printf '%s\\n' 'new' | edit insert before|after FILE HASH
+DELETE   edit delete FILE HASH        edit delete FILE START..END
 
 HASH comes only from search/read output. START..END is inclusive. Never invent a hash.
 SEARCH returns just the matched lines; use READ for surrounding context.
@@ -30,7 +30,7 @@ Long lines are clipped with an ellipsis.
 
 WORKFLOW  search -> read if needed -> edit -> use the returned hashes.
 
-JSON INPUT  ./edit.py --json-input
+JSON INPUT  edit --json-input
 {"command":"replace","file":"app.py","target":"HASH..HASH","input":"new text\\n"}
 commands: create, rewrite, read, search, replace, insert, delete
 
@@ -62,12 +62,12 @@ MISSING_INPUT            -> provide stdin input
     @staticmethod
     def build_parser():
         parser = AgentArgumentParser(
-            prog="./edit.py",
+            prog="edit",
             description="Single-file create/search/read/replace/insert/delete tool for LLM/SLM agents.",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         parser.add_argument("--human", action="store_true", help="Human-readable output. JSON is default.")
-        parser.add_argument("--prompt", action="store_true", help="Print the compact SLM protocol.")
+        parser.add_argument("--prompt", action="store_true", help="Print the compact agent protocol.")
         parser.add_argument("--json-input", action="store_true", help="Read one JSON request object from stdin.")
         sub = parser.add_subparsers(dest="command")
 
