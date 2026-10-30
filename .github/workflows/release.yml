@@ -3,11 +3,12 @@ name: Release
 on:
   push:
     tags:
+      - "Manager_*"
       - "DAG-Manager_*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and publish (for example DAG-Manager_1.0.0rc0)"
+        description: "Existing tag to build and publish (for example Manager_0.20.2)"
         required: true
         type: string
 
@@ -15,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +24,7 @@ jobs:
     name: Build distributions and publish release assets
     runs-on: ubuntu-latest
     steps:
-      - name: Resolve release tag
+      - name: Resolve and validate release tag
         id: release
         shell: bash
         env:
@@ -37,19 +38,32 @@ jobs:
           elif [[ "${REF_TYPE}" == "tag" ]]; then
             tag="${REF_NAME}"
           else
-            echo "::error::For manual runs, provide the existing release tag."
+            echo "::error::For manual runs, provide an existing release tag."
             exit 1
           fi
-          if [[ ! "${tag}" =~ ^DAG-Manager_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid tag '${tag}'. Expected DAG-Manager_X.Y.Z with an optional prerelease/build suffix."
+
+          if [[ "${tag}" =~ ^Manager_(.+)$ ]]; then
+            version="${BASH_REMATCH[1]}"
+          elif [[ "${tag}" =~ ^DAG-Manager_(.+)$ ]]; then
+            version="${BASH_REMATCH[1]}"
+          else
+            echo "::error::Unsupported tag '${tag}'. Expected Manager_X.Y.Z."
             exit 1
           fi
+
+          if [[ ! "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid semantic version in tag '${tag}'."
+            exit 1
+          fi
+
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Check out tagged source
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -61,26 +75,65 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Validate package layout
+      - name: Validate package metadata
+        env:
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
           test -f pyproject.toml || { echo "::error::Tagged source has no pyproject.toml."; exit 1; }
           test -d src/manager || { echo "::error::Tagged source has no src/manager package."; exit 1; }
-          grep -q 'build-backend = "setuptools.build_meta"' pyproject.toml || {
-            echo "::error::Expected setuptools PEP 517 build backend."
-            exit 1
-          }
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          metadata = tomllib.loads(Path("pyproject.toml").read_text())
+          actual = metadata["project"]["version"]
+          expected = os.environ["EXPECTED_VERSION"]
+          if actual != expected:
+              raise SystemExit(
+                  f"Tag version {expected!r} does not match project.version {actual!r}"
+              )
+          backend = metadata["build-system"]["build-backend"]
+          if backend != "setuptools.build_meta":
+              raise SystemExit(f"Unsupported build backend: {backend!r}")
+          PY
 
       - name: Build wheel and source distribution
-        run: uv build --wheel --sdist
+        run: uv build --no-sources --wheel --sdist
 
-      - name: Verify distributions
+      - name: Verify distribution filenames and metadata
+        env:
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          compgen -G "dist/*.whl" >/dev/null || { echo "::error::Wheel was not produced."; exit 1; }
-          compgen -G "dist/*.tar.gz" >/dev/null || { echo "::error::Source distribution was not produced."; exit 1; }
+          shopt -s nullglob
+          wheels=(dist/*.whl)
+          sdists=(dist/*.tar.gz)
+          [[ ${#wheels[@]} -eq 1 ]] || { echo "::error::Expected exactly one wheel."; exit 1; }
+          [[ ${#sdists[@]} -eq 1 ]] || { echo "::error::Expected exactly one source distribution."; exit 1; }
+          python - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+
+          expected = os.environ["EXPECTED_VERSION"].replace("-", "_")
+          wheel = next(Path("dist").glob("*.whl"))
+          sdist = next(Path("dist").glob("*.tar.gz"))
+          if f"-{expected}-" not in wheel.name:
+              raise SystemExit(f"Wheel version does not match tag: {wheel.name}")
+          if not sdist.name.endswith(f"-{os.environ['EXPECTED_VERSION']}.tar.gz"):
+              raise SystemExit(f"Source archive version does not match tag: {sdist.name}")
+          with zipfile.ZipFile(wheel) as archive:
+              metadata_files = [n for n in archive.namelist() if n.endswith(".dist-info/METADATA")]
+              if len(metadata_files) != 1:
+                  raise SystemExit("Wheel must contain exactly one METADATA file.")
+              metadata = archive.read(metadata_files[0]).decode()
+              if f"Version: {os.environ['EXPECTED_VERSION']}" not in metadata:
+                  raise SystemExit("Wheel metadata version does not match release tag.")
+          PY
           ls -lh dist/
 
       - name: Create release if absent
@@ -88,11 +141,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            if [[ "$RELEASE_TAG" =~ (rc|a|b|dev)[0-9]*$ ]]; then
+            if [[ "$RELEASE_VERSION" =~ (rc|a|b|dev)[0-9]*$ ]]; then
               gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes --prerelease
             else
               gh release create "$RELEASE_TAG" --verify-tag --title "$RELEASE_TAG" --generate-notes
