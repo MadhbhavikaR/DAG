@@ -917,7 +917,6 @@ class Store:
             + f"RESULT:\n{step.result}\n\nVALIDATION_EVENT:\n{step.validation_event}\n\n"
             + f"COMMIT_ID:\n{step.commit_id}\n\nCOMMIT_MESSAGE:\n{step.commit_message}\n"
         )
-        path = self.steps_dir / f"{step.task}-{step.id}.md"
         atomic_write(path, frontmatter(fm) + body)
         protect(path)
 
