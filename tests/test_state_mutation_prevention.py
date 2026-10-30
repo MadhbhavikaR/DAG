@@ -69,6 +69,33 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
         self.assertEqual(original_path.read_bytes(), before)
         self.assertFalse((self.store.tasks_dir / task.filename).exists())
 
+    def test_save_task_rejects_illegal_lifecycle_transition_without_mutation(self):
+        task = Task(
+            path=self.store.tasks_dir / "placeholder.md",
+            id="S00001T00001",
+            title="Lifecycle invariant",
+            parent=None,
+            sequence=1,
+            priority=3,
+            status="planned",
+            commit_mode="disabled",
+            created=now(),
+            updated=now(),
+            agent_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            body="WHAT:\nDo work\n\nDONE_WHEN:\nWork is complete\n",
+        )
+        self.store.save_task(task)
+        original_path = self.store.tasks_dir / task.filename
+        before = original_path.read_bytes()
+        task.status = "done"
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.save_task(task)
+
+        self.assertEqual(error.exception.code, "INVALID_TRANSITION")
+        self.assertEqual(original_path.read_bytes(), before)
+        self.assertFalse((self.store.tasks_dir / task.filename).exists())
+
     def test_save_step_rejects_missing_task_and_identity_changes(self):
         task = Task(
             path=self.store.tasks_dir / "placeholder.md",
