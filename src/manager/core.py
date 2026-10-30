@@ -394,8 +394,29 @@ class Store:
 
     def save_task(self, task: Task) -> None:
         desired = self.tasks_dir / task.filename
-        if task.path.exists() and task.path != desired:
-            task.path.unlink()
+        if task.path.exists():
+            if task.path.parent.resolve() != self.tasks_dir.resolve():
+                fail(
+                    "INVALID_MANAGED_PATH",
+                    "task source path is outside the managed tasks directory",
+                    "Load the task through Store before updating it.",
+                )
+            try:
+                existing_fm, _ = parse_frontmatter(task.path.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"cannot validate existing task identity: {exc}",
+                    "Restore the task record from a trusted manager snapshot before updating it.",
+                )
+            if existing_fm.get("id") != task.id:
+                fail(
+                    "IMMUTABLE_TASK_ID",
+                    "a persisted task ID cannot be changed",
+                    "Keep the existing task ID and update only mutable task fields.",
+                )
+            if task.path != desired:
+                task.path.unlink()
         task.path = desired
         atomic_write(desired, self.task_document(task))
         protect(desired)
