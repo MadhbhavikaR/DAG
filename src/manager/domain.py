@@ -7,7 +7,6 @@ configuration. It has no persistence or CLI dependencies.
 import re
 from pathlib import Path
 
-
 TASK_ID_RE = re.compile(r"^S(?P<story>\d{5})T(?P<task>\d{5})(?P<subs>(?:-\d{7})*)$")
 QUEUE_CLASS = {
     "active": "00-ACTIVE",

@@ -1,22 +1,22 @@
-import json
-import re
-import subprocess
 import contextlib
 import io
+import json
+import re
+import shutil
+import subprocess
 import sys
 import tempfile
-import uuid
-import shutil
 import unittest
-from unittest import mock
+import uuid
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 sys.path.insert(0, str(SRC))
 
-from manager.core import Store, ManagerError, generated_agent_id
 from manager import cli
+from manager.core import ManagerError, Store, generated_agent_id
 
 
 def is_uuid_v4(value: str) -> bool:
@@ -190,10 +190,10 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         self.assertIn(f"Current release: {project['version']}", skill_text)
 
     def test_application_classes_have_single_module_ownership(self):
-        from manager.core import ManagerError, Step, Store, Submission, Task
-        from manager.parser import ManagerArgumentParser
         from manager.cli import CommandDispatcher
+        from manager.core import ManagerError, Step, Store, Submission, Task
         from manager.git_repository import GitRepository
+        from manager.parser import ManagerArgumentParser
 
         expected_modules = {
             GitRepository: "manager.git_repository",

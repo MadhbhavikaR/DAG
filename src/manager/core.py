@@ -1273,7 +1273,7 @@ class Store:
         present they must have canonical identity, ownership, timestamps, and append-only
         record identities that cannot silently collide or change lifecycle semantics.
         """
-        for task_id in tasks.keys():
+        for task_id in tasks:
             for kind, path, expected_id in (
                 ("analysis", self.knowledge_dir / f"{task_id}-analysis.md", f"{task_id}-ANALYSIS"),
                 (

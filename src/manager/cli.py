@@ -5,15 +5,13 @@ import io
 import json
 import os
 import re
-import signal
 import shlex
-import subprocess
 import shutil
+import signal
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
-
-from .parser import ManagerArgumentParser
 
 from .core import (
     FORMAT_VERSION,
@@ -23,9 +21,9 @@ from .core import (
     TASK_STATES,
     TASK_TRANSITIONS,
     ManagerError,
+    Step,
     Store,
     Task,
-    Step,
     atomic_write,
     generated_agent_id,
     now,
@@ -33,6 +31,7 @@ from .core import (
     protect,
     rel_safe,
 )
+from .parser import ManagerArgumentParser
 
 PROMPT = """MANAGER PROTOCOL (LOW-CONTEXT SAFE)
 The manager owns workflow state. Never edit .manager directly.
@@ -94,9 +93,7 @@ def stdin_json() -> dict[str, Any]:
     return value
 
 
-def ensure_keys(
-    value: dict[str, Any], allowed: set[str], required: set[str] | None = None
-) -> None:
+def ensure_keys(value: dict[str, Any], allowed: set[str], required: set[str] | None = None) -> None:
     if required is None:
         required = set()
     unknown = sorted(set(value) - allowed)
