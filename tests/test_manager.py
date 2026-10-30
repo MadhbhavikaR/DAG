@@ -197,8 +197,10 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         from manager.core import ManagerError, Step, Store, Submission, Task
         from manager.parser import ManagerArgumentParser
         from manager.cli import CommandDispatcher
+        from manager.git_repository import GitRepository
 
         expected_modules = {
+            GitRepository: "manager.git_repository",
             ManagerError: "manager.errors",
             Step: "manager.step",
             Store: "manager.core",
