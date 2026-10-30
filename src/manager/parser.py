@@ -1,12 +1,13 @@
 """Argument parser with structured validation errors."""
 
 import argparse
+from typing import NoReturn
 
 from .errors import ManagerError
 
 
 class ManagerArgumentParser(argparse.ArgumentParser):
-    def error(self, message: str) -> None:
+    def error(self, message: str) -> NoReturn:
         raise ManagerError(
             "INVALID_COMMAND",
             f"invalid command arguments: {message}",
