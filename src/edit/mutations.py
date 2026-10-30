@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 
 from .errors import ErrorHandler
 from .text_utils import TextUtils
@@ -25,7 +26,9 @@ class MutationCommand(ABC):
 
 
 class ReplaceCommand(MutationCommand):
-    def execute(self, lines, start, end, content, newline):
+    def execute(
+        self, lines: list[str], start: int, end: int, content: str | None, newline: str
+    ) -> tuple[list[str], int, str]:
         if content is None:
             ErrorHandler.fail(
                 "MISSING_CONTENT",
@@ -74,13 +77,15 @@ class MutationRegistry:
     """Resolve mutation names to interchangeable command strategies."""
 
     def __init__(self) -> None:
-        self._commands = {
+        self._commands: dict[str, Callable[[str | None], MutationCommand]] = {
             "replace": lambda position: ReplaceCommand(),
             "delete": lambda position: DeleteCommand(),
             "insert": lambda position: InsertCommand(position or ""),
         }
 
-    def register(self, name: str, factory) -> None:
+    def register(
+        self, name: str, factory: Callable[[str | None], MutationCommand]
+    ) -> None:
         """Register an additional command without modifying editor orchestration."""
         if not name or name in self._commands:
             raise ValueError(f"Mutation command '{name}' is already registered or invalid.")
