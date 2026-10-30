@@ -192,7 +192,7 @@ class FileEditor:
         new_raw = new_text.encode(Config.UTF8)
 
         try:
-            current_raw = self.path.read_bytes()
+            current_raw = self.filesystem.read_bytes(self.path)
         except OSError as exc:
             ErrorHandler.fail("VERIFY_FAILED", f"Unable to verify '{self.path}': {exc}")
         if current_raw != old_raw:
