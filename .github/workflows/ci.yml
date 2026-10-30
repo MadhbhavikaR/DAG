@@ -1,27 +1,46 @@
 name: CI
+
 on:
   push:
-    branches: ["main", "DAG-Edit"]
+    branches: ["main", "DAG-Edit", "Edit"]
   pull_request:
-    branches: ["main", "DAG-Edit"]
+    branches: ["main", "DAG-Edit", "Edit"]
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   quality:
+    name: Lint and test (Python 3.12)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version-file: .python-version
-      - run: uv sync --all-groups
-      - run: uv run ruff check src tests edit.py
-      - run: uv run pytest -q
-      - run: uv run pytest --cov --cov-report=term-missing
+          python-version: "3.12"
+
+      - name: Install project and development dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Lint
+        run: uv run --locked ruff check src tests edit.py
+
+      - name: Run regression tests
+        run: uv run --locked pytest -q
+
+      - name: Check test coverage
+        run: uv run --locked pytest --cov --cov-report=term-missing
