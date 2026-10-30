@@ -133,6 +133,13 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
         self.assertEqual(error.exception.code, "IMMUTABLE_STEP_IDENTITY")
         self.assertEqual(step_path.read_bytes(), before)
 
+        step.sequence = 1
+        step.status = "done"
+        with self.assertRaises(ManagerError) as transition:
+            self.store.save_step(step)
+        self.assertEqual(transition.exception.code, "INVALID_STEP_TRANSITION")
+        self.assertEqual(step_path.read_bytes(), before)
+
         step.task = "S99999T99999"
         with self.assertRaises(ManagerError) as missing:
             self.store.save_step(step)
