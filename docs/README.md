@@ -10,7 +10,7 @@ This directory contains durable documentation for manager behavior and contracts
 
 ## Architecture Decisions
 
-- [adr/](./adr): Historical architecture decision records, including [ADR-048](./adr/ADR-048-domain-model-boundaries-and-command-dispatch.md) for domain-model and command-dispatch boundaries.
+- [adr/](./adr): Architecture decision records, including [ADR-048](./adr/ADR-048-domain-model-boundaries-and-command-dispatch.md) for domain-model boundaries and [ADR-049](./adr/ADR-049-fail-closed-managed-state-initialization.md) for fail-closed state initialization.
 
 ## Specs
 
