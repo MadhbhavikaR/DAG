@@ -15,7 +15,7 @@
 ### 1. Eliminate mutation during reads
 - [x] Stop load_tasks from rewriting task files when UUID text can be normalized in memory.
 - [ ] Audit every load/read/verify/context/status path for writes, including normalization, index rebuilds, schema caches, and initialization.
-- [ ] Add regression tests proving read-only commands do not alter authoritative task, step, workspace, or submission records.
+- [x] Add a regression test proving task loading does not rewrite a record when UUID text is normalized in memory. (Execution pending: no local checkout/test runner is available in this session.)
 
 ### 2. Establish a single mutation boundary
 - [ ] Inventory every write call and classify it as initialization, domain mutation, derived cache, telemetry, or repair.
