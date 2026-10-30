@@ -1419,7 +1419,7 @@ class ManagerTests(unittest.TestCase):
         r = self.h.run("next", check=False)
         self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
 
-    def test_initialize_recovers_analysis_phase_with_existing_steps(self):
+    def test_initialize_rejects_analysis_phase_tampering_without_mutation(self):
         self.h.add({"title": "Build", "what": "Build", "done_when": "Done"})
         self.h.run("next")
         self.h.submit(
@@ -1454,16 +1454,17 @@ class ManagerTests(unittest.TestCase):
 
         task_file = next((self.root / ".manager/tasks").glob("*S00001T00001.md"))
         task_file.chmod(0o644)
-        task_file.write_text(
-            task_file.read_text(encoding="utf-8").replace(
-                "phase: implementation", "phase: analysis"
-            ),
-            encoding="utf-8",
+        tampered = task_file.read_text(encoding="utf-8").replace(
+            "phase: implementation", "phase: analysis"
         )
+        task_file.write_text(tampered, encoding="utf-8")
+        before = task_file.read_bytes()
 
-        status_payload = json.loads(self.h.run("status", "--compact", raw=True).stdout)
-        self.assertEqual(status_payload["task"], "S00001T00001")
-        self.assertEqual(Store(self.root).load_tasks()["S00001T00001"].phase, "implementation")
+        status = self.h.run("status", check=False)
+
+        self.assertNotEqual(status.returncode, 0)
+        self.assertIn("MANAGED_FILE_TAMPERED", status.stderr)
+        self.assertEqual(task_file.read_bytes(), before)
 
     def test_no_shell_execution_for_validation(self):
         self.h.add({"title": "Build", "what": "Build", "done_when": "Done"})
