@@ -427,7 +427,7 @@ class Store:
                     "a persisted task ID cannot be changed",
                     "Keep the existing task ID and update only mutable task fields.",
                 )
-        tasks = self.load_tasks(validate=False)
+        tasks = self.load_tasks()
         previous = tasks.get(task.id)
         if previous is not None and task.status not in TASK_TRANSITIONS.get(previous.status, set()):
             fail(
