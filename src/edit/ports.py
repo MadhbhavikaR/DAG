@@ -5,10 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Protocol
 
+from .errors import ToolError
+
 
 class OutputPort(Protocol):
     def ok(self, data: dict[str, Any]) -> None: ...
-    def error(self, exc: Exception) -> None: ...
+    def error(self, exc: ToolError) -> None: ...
 
 
 class FileSystemPort(Protocol):
