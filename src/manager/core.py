@@ -857,13 +857,39 @@ class Store:
                 )
 
     def save_step(self, step: Step) -> None:
+        tasks = self.load_tasks(validate=False)
+        task = tasks.get(step.task)
+        if task is None:
+            fail(
+                "INVALID_TASK_REFERENCE",
+                f"cannot save step for missing task {step.task}",
+                "Use an existing task ID returned by Manager before creating or updating a step.",
+            )
+        path = self.steps_dir / f"{step.task}-{step.id}.md"
+        if path.exists():
+            try:
+                existing_fm, _ = parse_frontmatter(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                fail(
+                    "CORRUPT_MANAGED_FILE",
+                    f"cannot validate existing step identity: {exc}",
+                    "Restore the step record from a trusted manager snapshot before updating it.",
+                )
+            if (
+                existing_fm.get("id") != step.id
+                or existing_fm.get("sequence") != str(step.sequence)
+                or existing_fm.get("created") != step.created
+            ):
+                fail(
+                    "IMMUTABLE_STEP_IDENTITY",
+                    "a persisted step ID, sequence, and creation time cannot be changed",
+                    "Keep the existing step identity fields unchanged and update only mutable step fields.",
+                )
         fm = {
             "type": "step",
             "format_version": FORMAT_VERSION,
             "id": step.id,
-            "task": f"../tasks/{self.load_tasks(validate=False)[step.task].path.name}"
-            if step.task in self.load_tasks(validate=False)
-            else step.task,
+            "task": f"../tasks/{task.path.name}",
             "sequence": step.sequence,
             "status": step.status,
             "role": step.role,
