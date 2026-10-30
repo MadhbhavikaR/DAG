@@ -1,6 +1,6 @@
 [project]
 name = "manager"
-version = "0.20.3"
+version = "0.21.1"
 description = "Deterministic work orchestration controller"
 readme = "README.md"
 requires-python = ">=3.11"
