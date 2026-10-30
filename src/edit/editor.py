@@ -51,11 +51,11 @@ class FileEditor:
             ErrorHandler.fail("MISSING_CONTENT", "No initial content was supplied.", "Pipe content to stdin.")
 
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        normalized = self.text.normalize_content(content, "\\n")
+        normalized = self.text.normalize_content(content, "\n")
         raw = normalized.encode(Config.UTF8)
         self.filesystem.create_file(self.path, raw)
         lines = normalized.splitlines(keepends=True)
-        self.indexing.get_current_index(self.path, raw, lines, "\\n")
+        self.indexing.get_current_index(self.path, raw, lines, "\n")
         self.output.ok({"operation": "create", "lines": len(lines)})
 
     def rewrite(self, content: str | None) -> None:
@@ -63,12 +63,12 @@ class FileEditor:
         if content is None:
             ErrorHandler.fail("MISSING_INPUT", "No replacement content was supplied.", "Pipe content to stdin.")
 
-        normalized = self.text.normalize_content(content, "\\n")
+        normalized = self.text.normalize_content(content, "\n")
         lines = normalized.splitlines(keepends=True)
         raw = normalized.encode(Config.UTF8)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.filesystem.atomic_replace(self.path, normalized)
-        self.indexing.get_current_index(self.path, raw, lines, "\\n")
+        self.indexing.get_current_index(self.path, raw, lines, "\n")
         self.output.ok({"operation": "rewrite", "lines": len(lines)})
 
     def _load(self) -> tuple[list[str], str, str, bytes, dict[str, Any]]:
