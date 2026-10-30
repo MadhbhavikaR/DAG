@@ -6,6 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from manager.core import ManagerError, Store, now
+from manager.step import Step
 from manager.task import Task
 
 
@@ -67,6 +68,48 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
         self.assertEqual(error.exception.code, "IMMUTABLE_TASK_ID")
         self.assertEqual(original_path.read_bytes(), before)
         self.assertFalse((self.store.tasks_dir / task.filename).exists())
+
+    def test_save_step_rejects_missing_task_and_identity_changes(self):
+        task = Task(
+            path=self.store.tasks_dir / "placeholder.md",
+            id="S00001T00001",
+            title="Step ownership",
+            parent=None,
+            sequence=1,
+            priority=3,
+            status="draft",
+            commit_mode="disabled",
+            created=now(),
+            updated=now(),
+            agent_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        )
+        self.store.save_task(task)
+        step = Step(
+            id="STEP-0001",
+            task=task.id,
+            sequence=1,
+            status="ready",
+            role="developer",
+            title="Implement",
+            action="Implement the change",
+            created=now(),
+            updated=now(),
+        )
+        self.store.save_step(step)
+        step_path = self.store.steps_dir / f"{task.id}-{step.id}.md"
+        before = step_path.read_bytes()
+        step.sequence = 2
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.save_step(step)
+
+        self.assertEqual(error.exception.code, "IMMUTABLE_STEP_IDENTITY")
+        self.assertEqual(step_path.read_bytes(), before)
+
+        step.task = "S99999T99999"
+        with self.assertRaises(ManagerError) as missing:
+            self.store.save_step(step)
+        self.assertEqual(missing.exception.code, "INVALID_TASK_REFERENCE")
 
     def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
         agent_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
