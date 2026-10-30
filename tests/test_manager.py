@@ -181,7 +181,8 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         self.assertEqual(version(project["name"]), project["version"])
 
         package_init = (root / "src" / "manager" / "__init__.py").read_text(encoding="utf-8")
-        self.assertNotIn("__version__ =", package_init)
+        self.assertIn('version("manager")', package_init)
+        self.assertNotIn(f'__version__ = "{project["version"]}"', package_init)
 
         skill = root / "skill" / "manager" / "SKILL.md"
         self.assertTrue(skill.is_file())
@@ -781,7 +782,7 @@ class ManagerTests(unittest.TestCase):
         record = json.loads(lines[-1])
         self.assertTrue(record["command"].startswith("manager"))
         self.assertIn("submit", record["command"])
-        self.assertEqual(record["input"], json.dumps(bad_payload))
+        self.assertEqual(json.loads(record["input"]), {**bad_payload, "agent_id": agent_id})
         self.assertIsInstance(record["output"], dict)
         self.assertIn("error", record["output"])
         self.assertEqual(len(lines), 10)
@@ -2216,6 +2217,7 @@ class Iteration30HardeningTests(unittest.TestCase):
         text = original.replace("id: S00001T00001", "id: S00002T00001").replace(
             "S00001T00001", "S00002T00001"
         )
+        text = re.sub(r"(?m)^agent_id: .+$", f"agent_id: {uuid.uuid4()}", text, count=1)
         target = self.root / ".manager/tasks/TODO-01-TODO-03-S00002T00001.md"
         target.write_text(text)
         target.chmod(0o444)
@@ -2233,6 +2235,9 @@ class Iteration30HardeningTests(unittest.TestCase):
         original = first.read_text()
         story_two_text = original.replace("id: S00001T00001", "id: S00002T00001").replace(
             "S00001T00001", "S00002T00001"
+        )
+        story_two_text = re.sub(
+            r"(?m)^agent_id: .+$", f"agent_id: {uuid.uuid4()}", story_two_text, count=1
         )
         second = self.root / ".manager/tasks/TODO-02-BLOCKED-03-S00002T00001.md"
         second.write_text(
@@ -2845,7 +2850,7 @@ class Iteration04HardeningTests(unittest.TestCase):
         step.write_text(text)
         step.chmod(0o444)
         r = self.h.run("status", check=False)
-        self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
+        self.assertIn("ERROR: CORRUPT_STATE", r.stderr)
 
     def test_required_commit_done_without_commit_is_corruption(self):
         self._analysis()
@@ -2881,7 +2886,7 @@ class Iteration04HardeningTests(unittest.TestCase):
         step.write_text(text)
         step.chmod(0o444)
         r = self.h.run("status", check=False)
-        self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
+        self.assertIn("ERROR: CORRUPT_STATE", r.stderr)
 
 
 class Iteration05HardeningTests(unittest.TestCase):
@@ -3669,7 +3674,7 @@ class Iteration11ExecutionConsistencyTests(unittest.TestCase):
         task.chmod(0o644)
         task.write_text(task.read_text().replace("phase: step_validation", "phase: step_commit"))
         r = self.h.run("status", check=False)
-        self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
+        self.assertIn("ERROR: CORRUPT_STATE", r.stderr)
 
     def test_missing_current_step_is_detected(self):
         self._implemented()
@@ -3678,7 +3683,7 @@ class Iteration11ExecutionConsistencyTests(unittest.TestCase):
         task.chmod(0o644)
         task.write_text(task.read_text().replace("current_step: STEP-0001", "current_step: "))
         r = self.h.run("status", check=False)
-        self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
+        self.assertIn("ERROR: CORRUPT_STATE", r.stderr)
 
     def test_malformed_submission_ledger_has_structured_corruption_error(self):
         self.h.add({"title": "Build"})
@@ -3937,7 +3942,7 @@ class Iteration14SchemaHardeningTests(unittest.TestCase):
         path.chmod(0o644)
         path.write_text(text)
         r = self.h.run("status", check=False)
-        self.assertIn("ERROR: MANAGED_FILE_TAMPERED", r.stderr)
+        self.assertIn("ERROR: CORRUPT_STATE", r.stderr)
 
     def test_command_arguments_are_recorded_structurally(self):
         self.h.add({"title": "Build", "what": "Build", "done_when": "Done"})
