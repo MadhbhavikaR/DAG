@@ -71,3 +71,5 @@ Implementation update: task loading no longer writes normalized identifiers. Ini
 
 
 Architecture decision: [ADR-049 — Fail-Closed Managed-State Initialization](docs/adr/ADR-049-fail-closed-managed-state-initialization.md). The remaining high-risk work is transactional mutation boundaries and process-level agent isolation; both require broader implementation and adversarial tests.
+
+Integrity validation hardening: the manifest must be an object mapping safe relative paths to lowercase SHA-256 digests. Malformed manifests are rejected with the stable CORRUPT_STATE error contract. The managed root symlink is rejected before any integrity traversal. A regression test covers a non-object manifest. Execution remains pending until a local test runner is available.
