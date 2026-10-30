@@ -32,7 +32,7 @@ def format_task_id(story: int, task: int, subs: tuple[int, ...] = ()) -> str:
 
 def rel_safe(value: str) -> str:
     if not isinstance(value, str):
-        raise ValueError("path must be a string")
+        raise TypeError("path must be a string")
     value = value.strip()
     p = Path(value)
     if not value or p.is_absolute() or ".." in p.parts or (p.parts and p.parts[0] == ".manager"):
