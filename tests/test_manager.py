@@ -1,6 +1,5 @@
 import json
 import re
-import os
 import subprocess
 import contextlib
 import io
@@ -111,9 +110,7 @@ class ManagerHarness:
             return True
         if args[0] == "decision" and len(args) > 1 and args[1] in {"propose", "resolve"}:
             return True
-        if args[0] == "evidence" and len(args) > 1 and args[1] == "add":
-            return True
-        return False
+        return bool(args[0] == "evidence" and len(args) > 1 and args[1] == "add")
 
     def _inject_agent_id(
         self, args: tuple[str, ...], stdin: str | None, inject_agent_id: bool
@@ -405,7 +402,7 @@ class ManagerTests(unittest.TestCase):
         current = Store(self.root).load_tasks()[task.id]
         self.assertEqual(current.phase, "implementation")
         self.assertEqual(current.current_step, "STEP-0003")
-        correction = [s for s in Store(self.root).load_steps(task.id) if s.id == "STEP-0003"][0]
+        correction = next(s for s in Store(self.root).load_steps(task.id) if s.id == "STEP-0003")
         self.assertEqual(correction.status, "ready")
         self.h.run("next")
         self.assertEqual(
@@ -1550,7 +1547,7 @@ class ManagerTests(unittest.TestCase):
                 "runs": [{"command": "python -m unittest", "exit_code": 0, "summary": "ok"}],
             }
         )
-        step_commit = h.submit({"outcome": "ready_to_commit"}).stdout.strip()
+        h.submit({"outcome": "ready_to_commit"})
         h.submit(
             {
                 "outcome": "passed",
@@ -1559,7 +1556,7 @@ class ManagerTests(unittest.TestCase):
                 "diff_reviewed": True,
             }
         )
-        final = h.submit({"outcome": "ready_to_commit"}).stdout.strip()
+        h.submit({"outcome": "ready_to_commit"})
         log = subprocess.run(
             ["git", "-C", str(root), "log", "--format=%s", "-2"],
             check=True,
@@ -2497,7 +2494,7 @@ class Iteration02HardeningTests(unittest.TestCase):
     def test_decision_resolution_is_append_only(self):
         self.h.add({"title": "Build", "what": "Build", "done_when": "Done"})
         self.h.run("next")
-        did = self.h.run(
+        self.h.run(
             "decision",
             "propose",
             stdin=json.dumps(
@@ -3074,7 +3071,7 @@ class Iteration06DecisionLifecycleTests(unittest.TestCase):
             "decision", "resolve", stdin=json.dumps({"decision_id": second, "status": "accepted"})
         )
         text = next((self.root / ".manager/knowledge").glob("*-decisions.md")).read_text()
-        self.assertIn(f"STATUS:\nsuperseded", text)
+        self.assertIn("STATUS:\nsuperseded", text)
         self.assertIn(f"SUPERSEDED_BY:\n{second}", text)
 
     def test_rejected_superseding_proposal_leaves_prior_decision_accepted(self):
