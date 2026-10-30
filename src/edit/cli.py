@@ -286,11 +286,14 @@ class CLI:
         try:
             args = cls.build_parser().parse_args(argv)
             output = Output(args.human)
-            if args.prompt or args.command == "prompt" or not args.command:
+            if args.prompt or args.command == "prompt":
                 print(cls.PROMPT)
                 return 0
             if args.json_input:
                 return cls.json_input(output)
+            if not args.command:
+                print(cls.PROMPT)
+                return 0
             return CommandDispatcher(StandardInput()).dispatch(args, output)
         except ToolError as exc:
             output.error(exc)
