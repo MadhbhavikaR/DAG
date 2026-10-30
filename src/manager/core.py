@@ -388,18 +388,10 @@ class Store:
             atomic_write(workspace, content)
         if not self.submissions_path.exists():
             atomic_write(self.submissions_path, "{}\n")
-        reconciled = self.reconcile_transient_execution_state()
-        if reconciled:
-            self.refresh_integrity()
-        try:
-            self.validate()
-        except ManagerError as exc:
-            if exc.code != "MANAGED_FILE_TAMPERED" or not self.can_repair_integrity_after_reconcile(
-                exc.what
-            ):
-                raise
-            self.refresh_integrity()
-            self.validate()
+        # Initialization validates existing state but never reconciles or
+        # repairs it. A read/startup path must not legitimize unexpected
+        # managed-state changes by rewriting records or refreshing integrity.
+        self.validate()
         self.rebuild_index()
 
     @contextlib.contextmanager
