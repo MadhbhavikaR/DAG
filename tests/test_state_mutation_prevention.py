@@ -1,0 +1,54 @@
+import tempfile
+import unittest
+import uuid
+from pathlib import Path
+
+from manager.core import Store, now
+from manager.task import Task
+
+
+class ReadOnlyTaskLoadingTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name)
+        self.store = Store(self.root)
+        self.store.initialize()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
+        agent_id = str(uuid.uuid4())
+        task = Task(
+            path=self.store.tasks_dir / "placeholder.md",
+            id="S00001T00001",
+            title="Read-only loading regression",
+            parent=None,
+            sequence=1,
+            priority=3,
+            status="draft",
+            commit_mode="disabled",
+            created=now(),
+            updated=now(),
+            agent_id=agent_id,
+        )
+        self.store.save_task(task)
+        task_path = self.store.tasks_dir / task.filename
+
+        noncanonical_id = agent_id.upper()
+        self.assertNotEqual(noncanonical_id, agent_id)
+        original = task_path.read_text(encoding="utf-8")
+        task_path.write_text(
+            original.replace(f"agent_id: {agent_id}", f"agent_id: {noncanonical_id}"),
+            encoding="utf-8",
+        )
+        before = task_path.read_bytes()
+
+        loaded = self.store.load_tasks(validate=False)
+
+        self.assertEqual(loaded[task.id].agent_id, agent_id)
+        self.assertEqual(task_path.read_bytes(), before)
+
+
+if __name__ == "__main__":
+    unittest.main()
