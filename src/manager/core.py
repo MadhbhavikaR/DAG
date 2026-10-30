@@ -852,6 +852,26 @@ class Store:
         active_states = 0
         expected_sequence = 1
         for step in steps:
+            if (
+                not isinstance(step.id, str)
+                or STEP_ID_RE.fullmatch(step.id) is None
+                or not isinstance(step.sequence, int)
+                or isinstance(step.sequence, bool)
+                or step.sequence < 1
+                or not isinstance(step.status, str)
+                or not isinstance(step.role, str)
+                or not isinstance(step.title, str)
+                or not isinstance(step.action, str)
+                or not isinstance(step.accept, list)
+                or not isinstance(step.validation, list)
+                or not isinstance(step.commit_policy, str)
+                or not isinstance(step.commit_type, str)
+            ):
+                fail(
+                    "INVALID_STEP",
+                    f"step in {task_id} contains invalid field types or identity",
+                    "Provide a canonical step ID, positive sequence, valid state, and typed step fields.",
+                )
             if step.id in seen_ids or step.sequence in seen_sequences:
                 fail(
                     "CORRUPT_STATE",
