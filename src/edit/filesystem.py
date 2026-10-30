@@ -11,6 +11,17 @@ from .text_utils import TextUtils
 
 class FileSystemManager:
     @staticmethod
+    def create_file(path: Path, content: bytes) -> None:
+        try:
+            with path.open("xb") as handle:
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+        except OSError as exc:
+            ErrorHandler.fail("CREATE_FAILED", f"Unable to create '{path}': {exc}")
+        FileSystemManager._fsync_directory(path.parent)
+
+    @staticmethod
     def read_file(path: Path) -> tuple[list[str], str, str, bytes]:
         try:
             st = path.stat()
