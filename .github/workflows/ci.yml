@@ -31,8 +31,8 @@ jobs:
           python-version-file: .python-version
       - name: Resolve lockfile and install project
         run: |
-          uv lock --system-certs
-          uv sync --system-certs --all-groups
+          uv lock --check --system-certs
+          uv sync --locked --system-certs --all-groups
       - name: Check formatting
         run: uv run --system-certs ruff format --check .
       - name: Lint
