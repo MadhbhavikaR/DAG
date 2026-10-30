@@ -69,3 +69,6 @@ uv run manager examples
 uv run manager learn add < issue.json
 uv run manager learn list --limit 20
 ```
+
+
+State integrity: Treat integrity errors as rejection. Do not repair or rewrite managed records outside an explicit administrative procedure.
