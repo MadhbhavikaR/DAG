@@ -228,3 +228,38 @@ def test_hash_collision_during_mutation_does_not_write_file(
 
     assert caught.value.code == "HASH_COLLISION"
     assert target.read_bytes() == original
+
+
+def test_json_input_mode_works_without_a_subcommand(tmp_path: Path) -> None:
+    target = tmp_path / "json-input.txt"
+    request = json.dumps({
+        "command": "create",
+        "file": str(target),
+        "input": "alpha\\nbeta\\n",
+    })
+
+    result = run_cli("--json-input", input_text=request)
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "ok": True,
+        "operation": "create",
+        "lines": 2,
+    }
+    assert target.read_text(encoding="utf-8") == "alpha\\nbeta\\n"
+
+
+def test_mutation_registry_supports_additional_commands() -> None:
+    from edit.mutations import MutationCommand, MutationRegistry
+
+    class NoOpCommand(MutationCommand):
+        def execute(self, lines, start, end, content, newline):
+            return list(lines), start, "noop"
+
+    registry = MutationRegistry()
+    registry.register("noop", lambda position: NoOpCommand())
+
+    command = registry.get("noop")
+
+    assert isinstance(command, NoOpCommand)
+    assert command.execute(["line\\n"], 0, 0, None, "\\n") == (["line\\n"], 0, "noop")
