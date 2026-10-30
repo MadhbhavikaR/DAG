@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterator
 
-from .domain import TASK_ID_RE, QUEUE_CLASS, parse_task_id, format_task_id
+from .domain import QUEUE_CLASS, format_task_id, parse_task_id
 from .errors import ManagerError
 from .step import Step
 from .submission import Submission
