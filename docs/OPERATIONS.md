@@ -1,6 +1,6 @@
 # Operations Guide
 
-This runbook describes the standard execution loop, recovery flow, and operational guardrails.
+This runbook describes the standard execution loop, rejection behavior, and operational guardrails.
 
 ## Standard Execution Loop
 
@@ -28,6 +28,14 @@ When a command returns an error envelope:
 5. When current external information is required, use research tools (for example web search) and cite evidence.
 
 Do not improvise state edits or phase transitions outside manager commands.
+
+## State Integrity and Rejection
+
+- Startup and ordinary read commands validate existing authoritative state. They do not reconcile lifecycle state or refresh the integrity manifest to accept unexpected changes.
+- A state-integrity mismatch is rejected. Preserve affected records and investigate before an explicit, reviewed administrative repair.
+- A rejected operation must not change authoritative task, step, workspace, evidence, knowledge, or submission records. Diagnostic telemetry is separate.
+- Rejection is scoped to that request. Do not block unrelated valid workflows unless authoritative workspace state itself cannot be trusted.
+- Agents submit proposals through the command protocol. They must not write `.manager/` directly.
 
 ## Story and Step Control Rules
 
