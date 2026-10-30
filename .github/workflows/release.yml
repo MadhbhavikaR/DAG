@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to build and publish (for example Manager_0.20.2)"
+        description: "Existing release tag (for example Manager_0.20.2)"
         required: true
         type: string
 
@@ -21,10 +21,10 @@ concurrency:
 
 jobs:
   release:
-    name: Build distributions and publish release assets
-    runs-on: ubuntu-latest
+    name: Build and publish Python distributions
+    runs-on: ubuntu-24.04
     steps:
-      - name: Resolve and validate release tag
+      - name: Resolve release tag and version
         id: release
         shell: bash
         env:
@@ -38,101 +38,106 @@ jobs:
           elif [[ "${REF_TYPE}" == "tag" ]]; then
             tag="${REF_NAME}"
           else
-            echo "::error::For manual runs, provide an existing release tag."
+            echo "::error::Provide an existing tag for manual runs."
             exit 1
           fi
-
-          if [[ "${tag}" =~ ^Manager_(.+)$ ]]; then
-            version="${BASH_REMATCH[1]}"
-          elif [[ "${tag}" =~ ^DAG-Manager_(.+)$ ]]; then
-            version="${BASH_REMATCH[1]}"
-          else
-            echo "::error::Unsupported tag '${tag}'. Expected Manager_X.Y.Z."
+          case "$tag" in
+            Manager_*) version="${tag#Manager_}" ;;
+            DAG-Manager_*) version="${tag#DAG-Manager_}" ;;
+            *) echo "::error::Unsupported release tag: $tag"; exit 1 ;;
+          esac
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version in tag: $tag"
             exit 1
           fi
-
-          if [[ ! "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)([-+][0-9A-Za-z.-]+)?$ ]]; then
-            echo "::error::Invalid semantic version in tag '${tag}'."
-            exit 1
-          fi
-
-          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.release.outputs.tag }}
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
-      - name: Validate package metadata
+      - name: Validate package metadata and source version
         env:
           EXPECTED_VERSION: ${{ steps.release.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          test -f pyproject.toml || { echo "::error::Tagged source has no pyproject.toml."; exit 1; }
-          test -d src/manager || { echo "::error::Tagged source has no src/manager package."; exit 1; }
           python - <<'PY'
           import os
           import tomllib
           from pathlib import Path
 
-          metadata = tomllib.loads(Path("pyproject.toml").read_text())
-          actual = metadata["project"]["version"]
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
           expected = os.environ["EXPECTED_VERSION"]
+          actual = pyproject["project"]["version"]
           if actual != expected:
+              raise SystemExit(f"Tag version {expected!r} != pyproject version {actual!r}")
+          if pyproject["build-system"]["build-backend"] != "setuptools.build_meta":
+              raise SystemExit("Expected setuptools.build_meta as the PEP 517 backend")
+          package = Path("src/manager")
+          if not package.is_dir() or not (package / "__init__.py").is_file():
+              raise SystemExit("Missing src/manager Python package")
+          version_file = package / "__init__.py"
+          version_source = version_file.read_text(encoding="utf-8")
+          if f'__version__ = "{expected}"' not in version_source:
               raise SystemExit(
-                  f"Tag version {expected!r} does not match project.version {actual!r}"
+                  f"{version_file} must expose __version__ = {expected!r}"
               )
-          backend = metadata["build-system"]["build-backend"]
-          if backend != "setuptools.build_meta":
-              raise SystemExit(f"Unsupported build backend: {backend!r}")
           PY
 
       - name: Build wheel and source distribution
         run: uv build --no-sources --wheel --sdist
 
-      - name: Verify distribution filenames and metadata
+      - name: Validate built distributions
         env:
           EXPECTED_VERSION: ${{ steps.release.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          wheels=(dist/*.whl)
-          sdists=(dist/*.tar.gz)
-          [[ ${#wheels[@]} -eq 1 ]] || { echo "::error::Expected exactly one wheel."; exit 1; }
-          [[ ${#sdists[@]} -eq 1 ]] || { echo "::error::Expected exactly one source distribution."; exit 1; }
           python - <<'PY'
           import os
           import zipfile
           from pathlib import Path
 
-          expected = os.environ["EXPECTED_VERSION"].replace("-", "_")
-          wheel = next(Path("dist").glob("*.whl"))
-          sdist = next(Path("dist").glob("*.tar.gz"))
-          if f"-{expected}-" not in wheel.name:
-              raise SystemExit(f"Wheel version does not match tag: {wheel.name}")
-          if not sdist.name.endswith(f"-{os.environ['EXPECTED_VERSION']}.tar.gz"):
-              raise SystemExit(f"Source archive version does not match tag: {sdist.name}")
+          version = os.environ["EXPECTED_VERSION"]
+          wheels = list(Path("dist").glob("*.whl"))
+          sdists = list(Path("dist").glob("*.tar.gz"))
+          if len(wheels) != 1 or len(sdists) != 1:
+              raise SystemExit(
+                  f"Expected one wheel and one sdist; found {len(wheels)} and {len(sdists)}"
+              )
+          wheel = wheels[0]
+          sdist = sdists[0]
+          if f"-{version.replace('-', '_')}-" not in wheel.name:
+              raise SystemExit(f"Wheel filename does not match version: {wheel.name}")
+          if not sdist.name.endswith(f"-{version}.tar.gz"):
+              raise SystemExit(f"Source archive filename does not match version: {sdist.name}")
           with zipfile.ZipFile(wheel) as archive:
-              metadata_files = [n for n in archive.namelist() if n.endswith(".dist-info/METADATA")]
+              metadata_files = [
+                  name for name in archive.namelist()
+                  if name.endswith(".dist-info/METADATA")
+              ]
               if len(metadata_files) != 1:
-                  raise SystemExit("Wheel must contain exactly one METADATA file.")
-              metadata = archive.read(metadata_files[0]).decode()
-              if f"Version: {os.environ['EXPECTED_VERSION']}" not in metadata:
-                  raise SystemExit("Wheel metadata version does not match release tag.")
+                  raise SystemExit("Wheel must contain exactly one METADATA file")
+              metadata = archive.read(metadata_files[0]).decode("utf-8")
+              if f"Version: {version}" not in metadata:
+                  raise SystemExit("Wheel METADATA version does not match release tag")
+              if not any(name.startswith("manager/") and name.endswith(".py")
+                         for name in archive.namelist()):
+                  raise SystemExit("Wheel does not contain the manager Python package")
           PY
           ls -lh dist/
 
@@ -158,4 +163,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz --clobber
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz --clobber
