@@ -287,6 +287,12 @@ class Store:
         # Check the persisted integrity snapshot before creating missing
         # metadata or workspace records. Otherwise a read could recreate a
         # deleted authoritative file and only then discover the mismatch.
+        if self.meta.is_symlink():
+            fail(
+                "MANAGED_PATH_SYMLINK",
+                ".manager is a symbolic link",
+                "Replace .manager with the canonical managed directory before retrying.",
+            )
         if self.meta.exists():
             self.reject_managed_symlinks()
             self.validate_integrity()
