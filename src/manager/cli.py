@@ -13,6 +13,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .parser import ManagerArgumentParser
+
 from .core import (
     FORMAT_VERSION, PHASE_ROLE, STEP_STATES, STORY_ACTIVE_STATES, TASK_STATES, TASK_TRANSITIONS, ManagerError,
     Store, Task, Step, atomic_write, generated_agent_id, now, fail, parse_task_id, protect, rel_safe,
@@ -60,13 +62,6 @@ DISCOVERY
 """
 
 
-class ManagerArgumentParser(argparse.ArgumentParser):
-    def error(self, message: str) -> None:
-        raise ManagerError(
-            "INVALID_COMMAND",
-            f"invalid command arguments: {message}",
-            "Run 'manager --prompt' to review the command protocol, then rerun with valid arguments.",
-        )
 
 
 def stdin_json() -> dict[str, Any]:
