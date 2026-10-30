@@ -620,6 +620,38 @@ class Store:
         seen_agent_ids: dict[str, str] = {}
         for t in tasks.values():
             try:
+                _, id_root, id_subs = parse_task_id(t.id)
+            except ValueError as exc:
+                fail(
+                    "INVALID_TASK_ID",
+                    f"task has an invalid identifier: {exc}",
+                    "Use a canonical Manager task ID before saving the task.",
+                )
+            expected_sequence = id_subs[-1] if id_subs else id_root
+            if (
+                t.status not in TASK_STATES
+                or not t.title.strip()
+                or t.sequence != expected_sequence
+                or t.priority < 0
+                or t.priority > 99
+                or t.commit_mode not in {"enabled", "disabled"}
+                or (t.phase is not None and t.phase not in PHASE_ROLE)
+            ):
+                fail(
+                    "INVALID_TASK",
+                    f"task {t.id} contains invalid lifecycle or identity fields",
+                    "Correct the task ID, title, sequence, priority, status, phase, and commit mode before saving.",
+                )
+            try:
+                require_timestamp(t.created, "created")
+                require_timestamp(t.updated, "updated")
+            except ValueError as exc:
+                fail(
+                    "INVALID_TASK",
+                    f"task {t.id} has an invalid timestamp: {exc}",
+                    "Provide ISO-8601 timestamps with explicit offsets.",
+                )
+            try:
                 normalized_agent_id = normalize_agent_id(t.agent_id)
             except ValueError as exc:
                 fail(
