@@ -1793,6 +1793,7 @@ class Store:
                 )
             return ledger[token].response
         ledger[token] = Submission(token, fingerprint, response)
+        self.validate_managed_write_path(self.submissions_path)
         atomic_write(
             self.submissions_path,
             json.dumps({k: vars(v) for k, v in ledger.items()}, indent=2, sort_keys=True) + "\n",
