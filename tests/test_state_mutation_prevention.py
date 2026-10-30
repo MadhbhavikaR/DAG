@@ -119,6 +119,8 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
             role="developer",
             title="Implement",
             action="Implement the change",
+            accept=["The change works"],
+            validation=["run tests"],
             created=now(),
             updated=now(),
         )
