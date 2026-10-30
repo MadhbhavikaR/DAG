@@ -405,16 +405,23 @@ class Store:
         return frontmatter(fm) + body
 
     def save_task(self, task: Task) -> None:
+        source_path = task.path
         desired = self.tasks_dir / task.filename
-        if task.path.exists():
-            if task.path.parent.resolve() != self.tasks_dir.resolve():
+        if desired.exists() and desired != source_path:
+            fail(
+                "TASK_FILENAME_CONFLICT",
+                f"target task filename already exists: {desired.name}",
+                "Resolve the conflicting managed task file before retrying the transition.",
+            )
+        if source_path.exists():
+            if source_path.parent.resolve() != self.tasks_dir.resolve():
                 fail(
                     "INVALID_MANAGED_PATH",
                     "task source path is outside the managed tasks directory",
                     "Load the task through Store before updating it.",
                 )
             try:
-                existing_fm, _ = parse_frontmatter(task.path.read_text(encoding="utf-8"))
+                existing_fm, _ = parse_frontmatter(source_path.read_text(encoding="utf-8"))
             except (OSError, ValueError) as exc:
                 fail(
                     "CORRUPT_MANAGED_FILE",
@@ -444,11 +451,11 @@ class Store:
         proposed_tasks = dict(tasks)
         proposed_tasks[task.id] = task
         self.validate_tasks(proposed_tasks)
-        if task.path.exists() and task.path != desired:
-            task.path.unlink()
         task.path = desired
         atomic_write(desired, self.task_document(task))
         protect(desired)
+        if source_path != desired:
+            source_path.unlink()
         # Task filenames intentionally encode lifecycle state for natural directory
         # ordering. Any managed step that links back to the task must therefore be
         # rewritten atomically when that filename changes; otherwise a legal task
