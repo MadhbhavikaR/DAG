@@ -42,6 +42,32 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
         self.assertEqual(error.exception.code, "CORRUPT_STATE")
         self.assertIn("integrity manifest", error.exception.what)
 
+    def test_save_task_rejects_persisted_identity_change_without_deleting_source(self):
+        task = Task(
+            path=self.store.tasks_dir / "placeholder.md",
+            id="S00001T00001",
+            title="Immutable identity",
+            parent=None,
+            sequence=1,
+            priority=3,
+            status="draft",
+            commit_mode="disabled",
+            created=now(),
+            updated=now(),
+            agent_id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        )
+        self.store.save_task(task)
+        original_path = self.store.tasks_dir / task.filename
+        before = original_path.read_bytes()
+        task.id = "S00001T00002"
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.save_task(task)
+
+        self.assertEqual(error.exception.code, "IMMUTABLE_TASK_ID")
+        self.assertEqual(original_path.read_bytes(), before)
+        self.assertFalse((self.store.tasks_dir / task.filename).exists())
+
     def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
         agent_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
         task = Task(
