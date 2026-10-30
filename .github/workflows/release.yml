@@ -1,12 +1,16 @@
 name: Release
+
 on:
   push:
-    tags: ["DAG-Edit_*"]
+    tags: ["Edit_*"]
+
 permissions:
   contents: write
+
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -17,8 +21,8 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^DAG-Edit_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Invalid tag '$RELEASE_TAG'. Expected DAG-Edit_X.Y.Z."
+          if [[ ! "$RELEASE_TAG" =~ ^Edit_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Invalid tag '$RELEASE_TAG'. Expected Edit_X.Y.Z."
             exit 1
           fi
       - name: Create GitHub Release
