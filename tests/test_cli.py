@@ -9,11 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from dag_edit.editor import FileEditor
-from dag_edit.errors import ToolError
-from dag_edit.hashing import HashEngine
-from dag_edit.output import Output
-from dag_edit.text_utils import TextUtils
+from edit.editor import FileEditor
+from edit.errors import ToolError
+from edit.hashing import HashEngine
+from edit.output import Output
+from edit.text_utils import TextUtils
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = ROOT / "edit.py"
