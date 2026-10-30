@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from .errors import ErrorHandler
 from .text_utils import TextUtils
+from .ports import TextPort
 
 
 class MutationCommand(ABC):
@@ -26,6 +27,9 @@ class MutationCommand(ABC):
 
 
 class ReplaceCommand(MutationCommand):
+    def __init__(self, text: TextPort | None = None) -> None:
+        self.text = text or TextUtils()
+
     def execute(
         self, lines: list[str], start: int, end: int, content: str | None, newline: str
     ) -> tuple[list[str], int, str]:
@@ -35,17 +39,18 @@ class ReplaceCommand(MutationCommand):
                 "No replacement content was supplied.",
                 "Pipe the replacement block to stdin.",
             )
-        replacement = TextUtils.normalize_content(content, newline).splitlines(keepends=True)
+        replacement = self.text.normalize_content(content, newline).splitlines(keepends=True)
         new_lines = lines[:start] + replacement + lines[end + 1:]
         target = start if replacement else min(start, len(new_lines) - 1)
         return new_lines, target, "replace"
 
 
 class InsertCommand(MutationCommand):
-    def __init__(self, position: str) -> None:
+    def __init__(self, position: str, text: TextPort | None = None) -> None:
         if position not in {"before", "after"}:
             ErrorHandler.fail("INVALID_POSITION", "INSERT position must be 'before' or 'after'.")
         self.position = position
+        self.text = text or TextUtils()
 
     def execute(self, lines, start, end, content, newline):
         if content is None:
@@ -54,7 +59,7 @@ class InsertCommand(MutationCommand):
                 "No insertion content was supplied.",
                 "Pipe the insertion block to stdin.",
             )
-        inserted = TextUtils.normalize_content(content, newline).splitlines(keepends=True)
+        inserted = self.text.normalize_content(content, newline).splitlines(keepends=True)
         if not inserted:
             ErrorHandler.fail(
                 "EMPTY_CONTENT",
@@ -76,11 +81,12 @@ class DeleteCommand(MutationCommand):
 class MutationRegistry:
     """Resolve mutation names to interchangeable command strategies."""
 
-    def __init__(self) -> None:
+    def __init__(self, text: TextPort | None = None) -> None:
+        self.text = text or TextUtils()
         self._commands: dict[str, Callable[[str | None], MutationCommand]] = {
-            "replace": lambda position: ReplaceCommand(),
+            "replace": lambda position: ReplaceCommand(self.text),
             "delete": lambda position: DeleteCommand(),
-            "insert": lambda position: InsertCommand(position or ""),
+            "insert": lambda position: InsertCommand(position or "", self.text),
         }
 
     def register(
