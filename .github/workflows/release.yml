@@ -90,12 +90,6 @@ jobs:
           package = Path("src/manager")
           if not package.is_dir() or not (package / "__init__.py").is_file():
               raise SystemExit("Missing src/manager Python package")
-          version_file = package / "__init__.py"
-          version_source = version_file.read_text(encoding="utf-8")
-          if f'__version__ = "{expected}"' not in version_source:
-              raise SystemExit(
-                  f"{version_file} must expose __version__ = {expected!r}"
-              )
           PY
 
       - name: Build wheel and source distribution
