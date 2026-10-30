@@ -2,22 +2,34 @@
 
 Edit is a layered, object-oriented command-line application.
 
-- `cli.py` owns command-line parsing and dispatch.
-- `editor.py` coordinates file operations and mutation workflows.
-- `filesystem.py` owns safe reads and atomic persistence.
+## Application layer
+
+- `cli.py` contains the composition root and delegates command execution to focused adapters.
+- `StandardInput` isolates stdin access.
+- `TargetParser` owns hash/range target parsing.
+- `JsonRequestDispatcher` validates and dispatches JSON requests.
+- `CommandDispatcher` translates parsed CLI arguments into application-service calls.
+- `FileEditor` coordinates use cases and receives filesystem, hashing, indexing, mutation, text, and output dependencies through its constructor.
+
+## Domain and infrastructure
+
+- `mutations.py` models replace, insert, and delete as interchangeable command objects. `MutationRegistry` allows additional strategies to be registered without changing editor orchestration.
+- `ports.py` defines structural service contracts used by the application layer.
+- `filesystem.py` owns safe reads, exclusive creation, atomic persistence, and transaction cleanup.
 - `hashing.py` owns anchor generation, validation, and resolution.
 - `indexing.py` owns the rebuildable index cache.
-- `mutations.py` contains replace, insert, and delete command objects.
 - `output.py` owns JSON and human-readable presentation.
 - `errors.py` defines application and parser errors.
 - `text_utils.py` owns newline and line-text policies.
 - `config.py` owns application limits and conventions.
 
-## SOLID design requirements
+## SOLID decisions
 
-The intended design is based on single responsibility, open/closed mutation commands, substitutable service contracts, interface segregation, and dependency inversion. Application orchestration should depend on small abstractions, with concrete filesystem, hashing, indexing, and output implementations supplied at the composition boundary.
-
-The current package/module split is an initial structural separation, not a claim of complete SOLID conformance. In particular, the CLI still contains orchestration and input-validation responsibilities together, and several helper classes expose static utility APIs rather than injected service contracts. These are explicit refactoring targets; they must be addressed with focused tests rather than hidden behind naming or documentation.
+- **Single Responsibility:** command parsing, stdin reading, request dispatch, file editing, persistence, mutation strategies, and output formatting have separate owners.
+- **Open/Closed:** new mutation commands can be registered through `MutationRegistry`.
+- **Liskov Substitution:** mutation implementations satisfy the same `MutationCommand` contract and can be substituted by the editor.
+- **Interface Segregation:** `ports.py` exposes narrow contracts for the services used by the editor.
+- **Dependency Inversion:** `FileEditor` accepts service contracts rather than constructing concrete infrastructure internally; defaults are composed at the application boundary.
 
 ## Invariants
 
