@@ -1,6 +1,6 @@
 [project]
 name = "manager"
-version = "1.0.0rc0"
+version = "1.0.0-rc"
 description = "Deterministic work orchestration controller"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -10,26 +10,9 @@ dependencies = []
 manager = "manager.cli:main"
 
 [dependency-groups]
-dev = [
-    "mypy>=1.11",
-    "pytest>=8.3",
-    "pytest-cov>=5.0",
-    "ruff>=0.6",
-]
+dev = []
 
 [build-system]
-requires = ["setuptools>=69"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"
+requires = []
+build-backend = "build_backend"
+backend-path = ["."]
