@@ -193,6 +193,80 @@ class ManagerReleaseArtifactTests(unittest.TestCase):
         self.assertIn(f"Current release: {project['version']}", skill_text)
 
 
+    def test_application_classes_have_single_module_ownership(self):
+        from manager.core import ManagerError, Step, Store, Submission, Task
+        from manager.parser import ManagerArgumentParser
+        from manager.cli import CommandDispatcher
+
+        expected_modules = {
+            ManagerError: "manager.errors",
+            Step: "manager.step",
+            Store: "manager.core",
+            Submission: "manager.submission",
+            Task: "manager.task",
+            ManagerArgumentParser: "manager.parser",
+            CommandDispatcher: "manager.cli",
+        }
+        for model, expected_module in expected_modules.items():
+            with self.subTest(model=model.__name__):
+                self.assertEqual(model.__module__, expected_module)
+
+    def test_task_and_step_mutable_defaults_are_not_shared(self):
+        from manager.core import Step, Task
+
+        first_task = Task(Path("."), "S00001T00001", "First", None, 1, 1, "planned")
+        second_task = Task(Path("."), "S00001T00002", "Second", None, 2, 1, "planned")
+        first_task.final_validation.append("check")
+        first_task.git_base.append("README.md")
+        self.assertEqual(second_task.final_validation, [])
+        self.assertEqual(second_task.git_base, [])
+
+        first_step = Step("STEP-0001", "S00001T00001", 1, "queued", "developer", "First", "Do it")
+        second_step = Step("STEP-0002", "S00001T00001", 2, "queued", "developer", "Second", "Do it")
+        first_step.accept.append("works")
+        first_step.load.append("context")
+        self.assertEqual(second_step.accept, [])
+        self.assertEqual(second_step.load, [])
+
+    def test_dispatcher_stdin_policy_matches_command_contract(self):
+        cases = [
+            (["submit"], True),
+            (["block"], True),
+            (["task", "add"], True),
+            (["task", "edit"], True),
+            (["task", "plan"], False),
+            (["finding", "add"], True),
+            (["evidence", "add"], True),
+            (["decision", "propose"], True),
+            (["learn", "add"], True),
+            (["learn", "from-log"], False),
+            (["plan", "submit"], True),
+            (["next"], False),
+            (["status"], False),
+        ]
+        parser = cli.build_parser()
+        for argv, expected in cases:
+            with self.subTest(argv=argv):
+                args = parser.parse_args(argv)
+                self.assertEqual(cli.CommandDispatcher.reads_stdin(args), expected)
+
+    def test_dispatcher_returns_result_and_mutation_policy(self):
+        dispatcher = cli.CommandDispatcher(mock.Mock())
+        parser = cli.build_parser()
+
+        with mock.patch.object(cli, "cmd_examples", return_value={"ok": True}) as handler:
+            result, mutating = dispatcher.dispatch(parser.parse_args(["examples"]))
+        self.assertEqual(result, {"ok": True})
+        self.assertFalse(mutating)
+        handler.assert_called_once_with(as_json=True)
+
+        with mock.patch.object(cli, "cmd_next", return_value={"next": True}) as handler:
+            result, mutating = dispatcher.dispatch(parser.parse_args(["next"]))
+        self.assertEqual(result, {"next": True})
+        self.assertTrue(mutating)
+        handler.assert_called_once_with(dispatcher._store, as_json=True)
+
+
 class ManagerTests(unittest.TestCase):
 
     def test_final_review_correction_uses_monotonic_step_id_and_ready_gate(self):
