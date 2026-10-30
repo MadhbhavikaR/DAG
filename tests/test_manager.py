@@ -171,16 +171,26 @@ class ManagerHarness:
 
 
 class ManagerReleaseArtifactTests(unittest.TestCase):
-    def test_release_version_and_skill_are_present(self):
+    def test_release_version_comes_from_project_metadata(self):
+        import tomllib
+        from importlib.metadata import version
+
         root = Path(__file__).resolve().parents[1]
-        pyproject = (root / "pyproject.toml").read_text(encoding="utf-8")
-        self.assertIn('version = "1.0.0-rc"', pyproject)
-        self.assertEqual((root / "src" / "manager" / "__init__.py").read_text(encoding="utf-8").strip(), '__version__ = "1.0.0-rc"')
+        project = tomllib.loads(
+            (root / "pyproject.toml").read_text(encoding="utf-8")
+        )["project"]
+        self.assertEqual(version(project["name"]), project["version"])
+
+        package_init = (root / "src" / "manager" / "__init__.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotRegex(package_init, r'__version__\s*=\s*["\\']')
+
         skill = root / "skill" / "manager" / "SKILL.md"
         self.assertTrue(skill.is_file())
-        text = skill.read_text(encoding="utf-8")
-        self.assertIn("name: manager", text)
-        self.assertIn("1.0.0-rc", text)
+        skill_text = skill.read_text(encoding="utf-8")
+        self.assertIn("name: manager", skill_text)
+        self.assertIn(f"Current release: {project['version']}", skill_text)
 
 
 class ManagerTests(unittest.TestCase):
