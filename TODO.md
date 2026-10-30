@@ -28,7 +28,7 @@
 ### 3. Enforce operation authorization
 - [ ] Validate agent identity against the active task and assigned scope for every mutation.
 - [ ] Enforce phase, role/capability, task ownership, and step ownership centrally rather than relying on prompt instructions.
-- [ ] Reject immutable identity and scope changes.
+- [x] Reject persisted task-ID changes and step identity changes before writes. (Agent resource-scope authorization remains open.)
 - [ ] Add stale-state/version preconditions to mutation requests.
 
 ### 4. Preserve domain invariants
