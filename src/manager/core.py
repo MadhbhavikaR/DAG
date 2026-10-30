@@ -886,7 +886,7 @@ class Store:
                 )
 
     def save_step(self, step: Step) -> None:
-        tasks = self.load_tasks(validate=False)
+        tasks = self.load_tasks()
         task = tasks.get(step.task)
         if task is None:
             fail(
