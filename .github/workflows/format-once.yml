@@ -1,0 +1,30 @@
+name: One-time Manager formatting
+
+on:
+  push:
+    branches: ["Manager"]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+      - name: Format Python sources and tests
+        run: |
+          uv lock --system-certs
+          uv sync --locked --system-certs --all-groups
+          uv run --system-certs ruff format src tests
+          if ! git diff --quiet -- src tests; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src tests
+            git commit -m "style: format refactor and regression tests"
+            git push origin HEAD:Manager
+          fi
