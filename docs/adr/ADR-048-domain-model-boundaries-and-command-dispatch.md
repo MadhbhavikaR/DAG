@@ -12,7 +12,7 @@ The CLI module combined argument parsing, command routing, and command execution
 - Keep one production class per Python module.
 - Place task identity rules in `manager.domain`.
 - Place `ManagerError`, `Task`, `Step`, and `Submission` in focused modules.
-- Keep `Store` as the persistence boundary in `manager.core`.
+- Keep `Store` as the persistence facade in `manager.core` and delegate Git operations to `GitRepository` in `manager.git_repository`.
 - Keep argument parser behavior in `manager.parser`.
 - Encapsulate command selection and stdin requirements in `CommandDispatcher`.
 - Preserve the established `manager.core` imports as a compatibility facade for existing callers.
