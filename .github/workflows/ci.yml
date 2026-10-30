@@ -43,4 +43,4 @@ jobs:
         run: uv run pytest -q
 
       - name: Check test coverage
-        run: uv run --locked pytest --cov --cov-report=term-missing
+        run: uv run pytest --cov --cov-report=term-missing
