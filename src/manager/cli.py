@@ -29,7 +29,6 @@ from .core import (
     atomic_write,
     generated_agent_id,
     now,
-    fail,
     parse_task_id,
     protect,
     rel_safe,
@@ -95,7 +94,11 @@ def stdin_json() -> dict[str, Any]:
     return value
 
 
-def ensure_keys(value: dict[str, Any], allowed: set[str], required: set[str] = set()) -> None:
+def ensure_keys(
+    value: dict[str, Any], allowed: set[str], required: set[str] | None = None
+) -> None:
+    if required is None:
+        required = set()
     unknown = sorted(set(value) - allowed)
     if unknown:
         raise ManagerError(
@@ -779,9 +782,9 @@ def compact_context_record(rid: str, typ: str, chunk: str, max_chars: int) -> st
 def selected_task(store: Store, tasks: dict[str, Task]) -> Task | None:
     active = [t for t in tasks.values() if t.status == "active"]
     if active:
-        return sorted(active, key=lambda t: t.order_key)[0]
+        return min(active, key=lambda t: t.order_key)
     candidates = [t for t in tasks.values() if t.status in {"planned", "expand"}]
-    return sorted(candidates, key=lambda t: (t.order_key, t.priority))[0] if candidates else None
+    return min(candidates, key=lambda t: (t.order_key, t.priority)) if candidates else None
 
 
 def task_story(task: Task) -> int:
@@ -1298,7 +1301,7 @@ def cmd_next(store: Store, as_json: bool = False) -> str:
         active = [t for t in tasks.values() if t.status == "active"]
         if active:
             active_task = recover_active_task_with_steps(
-                store, sorted(active, key=lambda t: t.order_key)[0]
+                store, min(active, key=lambda t: t.order_key)
             )
             store.rebuild_index()
             return next_envelope(store, active_task, as_json=as_json)
@@ -1361,7 +1364,6 @@ def cmd_context(
         task = selected_task(store, tasks)
         if not task or task.status != "active":
             return "NO_TASK"
-        step = current_step(store, task)
         allowed = set(envelope_load_ids(store, task))
         if ref:
             if ref.startswith(task.id + "/"):
@@ -2100,7 +2102,7 @@ def cmd_plan_submit(store: Store, task: Task, p: dict[str, Any]) -> str:
                 "Each step must have a unique bounded action.",
             )
         titles.add(title.casefold())
-        accept = require_list(x["accept"], "step.accept", True)
+        require_list(x["accept"], "step.accept", True)
         load = require_list(x["load"], "step.load")
         may_edit = require_list(x["may_edit"], "step.may_edit")
         validation = require_list(x["validation"], "step.validation", True)
@@ -3719,7 +3721,7 @@ def cmd_learn_list(store: Store, limit: int = 20) -> dict[str, Any]:
         records: list[dict[str, Any]] = []
         for rid, chunk in zip(ids, chunks):
 
-            def field(name: str, default: str = "") -> str:
+            def field(name: str, default: str = "", chunk: str = chunk) -> str:
                 m = re.search(
                     r"^" + re.escape(name) + r":\n(.*?)(?=\n[A-Z_]+:\n|\Z)",
                     chunk,
@@ -4033,7 +4035,7 @@ def build_parser() -> argparse.ArgumentParser:
     d = sub.add_parser("decision")
     ds = d.add_subparsers(dest="decision_command")
     ds.add_parser("propose")
-    dr = ds.add_parser("resolve")
+    ds.add_parser("resolve")
     l = sub.add_parser("learn", help="record and list manual manager improvement issues")
     ls = l.add_subparsers(dest="learn_command")
     ls.add_parser("add", help="append one learning record from stdin JSON")
