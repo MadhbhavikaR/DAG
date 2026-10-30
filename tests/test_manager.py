@@ -2082,6 +2082,10 @@ class Iteration18StoryOrderingTests(ManagerTests):
         with store.lock():
             store.initialize()
             task = next(iter(store.load_tasks().values()))
+            task.status = "active"
+            task.phase = "analysis"
+            task.updated = task.created
+            store.save_task(task)
             task.status = "done"
             task.phase = None
             task.updated = task.created
