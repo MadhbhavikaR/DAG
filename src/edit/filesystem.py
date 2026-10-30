@@ -11,6 +11,10 @@ from .text_utils import TextUtils
 
 class FileSystemManager:
     @staticmethod
+    def read_bytes(path: Path) -> bytes:
+        return path.read_bytes()
+
+    @staticmethod
     def create_file(path: Path, content: bytes) -> None:
         try:
             with path.open("xb") as handle:
