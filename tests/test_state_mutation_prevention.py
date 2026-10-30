@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from manager.core import Store, now
+from manager.core import ManagerError, Store, now
 from manager.task import Task
 
 
@@ -18,6 +18,17 @@ class ReadOnlyTaskLoadingTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp_dir.cleanup()
+
+    def test_initialize_does_not_recreate_deleted_integrity_protected_workspace(self):
+        self.store.refresh_integrity()
+        workspace = self.store.meta / "workspace.md"
+        workspace.unlink()
+
+        with self.assertRaises(ManagerError) as error:
+            self.store.initialize()
+
+        self.assertEqual(error.exception.code, "MANAGED_FILE_TAMPERED")
+        self.assertFalse(workspace.exists())
 
     def test_loading_task_normalizes_uuid_in_memory_without_rewriting_record(self):
         agent_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
