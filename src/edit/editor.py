@@ -34,11 +34,11 @@ class FileEditor:
     ) -> None:
         self.path = path
         self.output = output
+        self.text = text or TextUtils()
         self.filesystem = filesystem or FileSystemManager()
         self.hashing = hashing or HashEngine()
         self.indexing = indexing or IndexManager()
-        self.mutations = mutations or MutationRegistry()
-        self.text = text or TextUtils()
+        self.mutations = mutations or MutationRegistry(self.text)
 
     def create(self, content: str | None) -> None:
         if self.path.exists():
