@@ -406,7 +406,7 @@ class ManagerTests(unittest.TestCase):
         self.assertEqual(correction.status, "ready")
         self.h.run("next")
         self.assertEqual(
-            [s for s in Store(self.root).load_steps(task.id) if s.id == "STEP-0003"][0].status,
+            next(s for s in Store(self.root).load_steps(task.id) if s.id == "STEP-0003").status,
             "active",
         )
 
@@ -2494,7 +2494,7 @@ class Iteration02HardeningTests(unittest.TestCase):
     def test_decision_resolution_is_append_only(self):
         self.h.add({"title": "Build", "what": "Build", "done_when": "Done"})
         self.h.run("next")
-        self.h.run(
+        did = self.h.run(
             "decision",
             "propose",
             stdin=json.dumps(
@@ -4463,7 +4463,7 @@ class Iteration24TaskBlockConsistencyTests(unittest.TestCase):
     def test_supporting_record_invalid_decision_status_is_detected(self):
         self.h.add({"title": "Decide", "what": "Decide", "done_when": "Done"})
         self.h.run("next")
-        did = self.h.run(
+        self.h.run(
             "decision",
             "propose",
             stdin=json.dumps(
