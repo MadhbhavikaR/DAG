@@ -106,3 +106,8 @@ These files are manager-owned diagnostics artifacts and should be inspected, not
 - Validate responses against docs/schemas/*.schema.json.
 - Reject unexpected payload shapes.
 - Never mutate .manager outside manager commands.
+
+
+## Portable API and Agent Hosts
+
+The `manager` wheel provides workflow APIs only. It does not launch agents, manage model processes, or claim to provide OS-level sandboxing. CLI, IDE, MCP, subprocess, and container integrations are host adapters that call the same library API. The host is responsible for authenticating its caller and enforcing process/filesystem isolation. The library must independently authorize each operation using a host-established principal and a Manager-issued, task-scoped capability; a payload `agent_id` alone is not authentication. Agent code must submit proposals through the API and must not receive direct write access to `.manager/`.
