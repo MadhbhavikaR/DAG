@@ -86,3 +86,6 @@ Additional mutation-surface hardening: all Store record-write destinations now p
 
 
 Architecture update (2026-11-01): the distribution is a portable Python wheel that exposes APIs and workflow only. It does not launch, supervise, or sandbox LLM agents. External hosts own execution and OS-level isolation. The library owns workflow policy, identity/scope authorization, validation, and persistence. Caller-supplied `agent_id` is an identifier, not authentication; the public API must require a host-established principal/capability context before agent-scoped mutations. See ADR-050.
+
+
+API boundary follow-up: implement a public service facade with a host-established principal/capability context. Keep `Store` and raw persistence mutation methods internal to the trusted service boundary. Add host-adapter conformance tests so CLI and future integrations call the same application operations. Do not implement agent launching or claim same-process Python code is sandboxed. The recursive inventory is complete; test execution and source-level mutation/auth audits remain pending.
