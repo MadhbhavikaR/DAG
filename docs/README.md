@@ -15,3 +15,4 @@ This directory contains durable documentation for manager behavior and contracts
 ## Specs
 
 - [specs/README.md](./specs/README.md): Agent-oriented implementation specs and execution checklists.
+- [ADR-050 — Portable API-Only Workflow Library](adr/ADR-050-portable-api-only-workflow-library.md)
