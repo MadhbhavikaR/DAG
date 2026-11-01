@@ -9,7 +9,7 @@
 - [x] Review root, src/, tests/, and docs/ AGENTS contracts.
 - [x] Identify core mutation surfaces in Store: initialization/reconciliation, task and step persistence, support records, submissions, integrity manifest, and workspace metadata.
 - [x] Identify CLI mutation entrypoints and the agent-facing next / context / submit protocol.
-- [ ] Complete recursive inventory of all repository paths, extensions, scripts, and direct managed-state access. GitHub file access did not expose a recursive tree listing; complete this when a local checkout is available.
+- [x] Complete recursive inventory of all repository paths, extensions, scripts, and direct managed-state access. GitHub recursive tree confirms 94 tracked files; no additional extension packages or scripts are present. Direct managed-state access is concentrated in `src/manager/core.py` and CLI orchestration in `src/manager/cli.py`.
 
 ## Work plan
 ### 1. Eliminate mutation during reads
@@ -83,3 +83,6 @@ Persistence hardening update: task identity and task lifecycle transitions are n
 Managed-write path hardening: task, step, supporting-record, workspace-active, index, and integrity-manifest writes now validate their destination remains inside the canonical Manager state directory and reject managed symlinks. Step IDs and task IDs are validated before they are used to construct filesystem paths. Tests for these new path checks still need to be run locally.
 
 Additional mutation-surface hardening: all Store record-write destinations now pass a managed-root and symlink check. Submission-ledger writes, workspace metadata, derived index writes, and integrity-manifest writes use the same path boundary. Step IDs are validated before filesystem path construction. A regression test verifies support-record writes outside the managed state directory are rejected.
+
+
+Architecture update (2026-11-01): the distribution is a portable Python wheel that exposes APIs and workflow only. It does not launch, supervise, or sandbox LLM agents. External hosts own execution and OS-level isolation. The library owns workflow policy, identity/scope authorization, validation, and persistence. Caller-supplied `agent_id` is an identifier, not authentication; the public API must require a host-established principal/capability context before agent-scoped mutations. See ADR-050.
