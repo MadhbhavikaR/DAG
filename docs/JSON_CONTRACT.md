@@ -78,3 +78,8 @@ Rendered text remains useful for local debugging and legacy tests, but it is not
 - Integrity mismatches are rejected. They are not automatically accepted by refreshing the integrity manifest.
 - A rejected operation must leave authoritative managed records unchanged. Diagnostic logs are excluded from this guarantee.
 - Rejection of one request must not independently block unrelated valid operations.
+
+
+## Portable API Contract
+
+The Python distribution is a host-independent workflow/API library, not an agent runtime. It does not spawn LLM processes or provide OS-level isolation. Integrations must authenticate the invoking host principal and pass a trusted principal/capability context to the API. The `agent_id` in an agent payload is a correlation/assignment identifier only; it must be checked against that trusted context and the current task assignment. Every mutation must enforce task, phase, role, step, and path scope centrally before persistence. Hosts remain responsible for process and filesystem sandboxing.
