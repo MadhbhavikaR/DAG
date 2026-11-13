@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
-**Current baseline:** 0.2.3 (Rust foundation implemented; CI rerun pending after formatting correction)  
+**Current baseline:** 0.2.4 (F-001 CI checks passed; Jetson hardware validation pending)  
 **Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
 **Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -19,8 +19,8 @@
 
 **Type:** Atomic feature  
 **Feature version:** 0.2.0  
-**Current patch:** 0.2.3  
-**Status:** [~] implementation pushed; formatting corrections pushed; CI verification pending
+**Current patch:** 0.2.4  
+**Status:** [~] CI quality and ARM64 cross-build passed; native Jetson validation pending
 
 ### Research and design
 - [x] Confirm ARM64 Rust toolchain target support; the official target table lists aarch64-unknown-linux-gnu as Tier 1.
@@ -44,15 +44,15 @@
 - [x] Add unit/integration tests for configuration defaults, invalid values and precedence.
 - [x] Add tests proving malformed and unknown config values are rejected.
 - [x] Add tests for JSON log escaping and CLI health/version behavior.
-- [ ] Run rustfmt, Clippy, tests and release build in GitHub Actions.
-- [ ] Verify ARM64 cross-build in GitHub Actions.
+- [x] Run rustfmt, Clippy, tests and release build in GitHub Actions.
+- [x] Verify ARM64 cross-build in GitHub Actions.
 - [ ] Verify native build and startup on Jetson Nano.
 
 ### Documentation and delivery
 - [x] Add Rust installation, build and run instructions to Quick Start.
 - [x] Document supported target, MSRV, configuration and known limitations.
 - [x] Update package version to 0.2.0 in the feature commit.
-- [ ] Verify CI on the single working branch.
+- [x] Verify CI on the single working branch.
 - [x] Commit with \`feat:\` prefix and push.
 
 ## Feature F-002 — Hikvision ISAPI device discovery and event ingestion
