@@ -37,7 +37,7 @@ Every commit message must begin with exactly one of:
 - `fix:` a bug fix.
 - `release:` release preparation/publication commit.
 
-Every completed atomic feature increments the SemVer minor version by one and updates all authoritative version metadata in that same feature commit. For example, 0.1.0 -> 0.2.0. Bug fixes and chores do not increment the version unless they are part of a feature completion. Release commits must not introduce untested application behavior.
+Every completed atomic feature increments the SemVer minor version by one and updates all authoritative version metadata in that same feature commit. For example, 0.1.0 -> 0.2.0. Every bug fix, minor non-feature task, and chore increments the SemVer patch version by one and updates all authoritative version metadata in that same commit. For example, 0.1.0 -> 0.1.1. A release commit records/publishes the current version and does not independently increment it unless it contains a separately scoped fix or chore. Feature version increments take precedence over patch increments when a commit completes a feature. Do not combine unrelated features in one commit. A feature commit must include its implementation, tests, documentation, and version update. Never claim a push or commit succeeded until the GitHub operation confirms it.
 
 Do not combine unrelated features in one commit. A feature commit must include its implementation, tests, documentation, and version update. Never claim a push or commit succeeded until the GitHub operation confirms it.
 

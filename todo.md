@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** `DAG-Nano-4gb-NVR-AI` (only permitted development branch)  
-**Current baseline:** 0.1.0 (inherited template metadata; Rust application bootstrap not yet completed)  
+**Current baseline:** 0.1.1 (patch increment for the commit-policy clarification; Rust application bootstrap not yet completed)  
 **Status legend:** `[ ] pending` · `[~] in progress` · `[x] verified complete` · `[!] blocked`  
 **Rule:** A checkbox becomes `[x]` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
