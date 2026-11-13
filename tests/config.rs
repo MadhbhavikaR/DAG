@@ -70,8 +70,7 @@ fn rejects_duplicate_configuration_keys() {
 
 #[test]
 fn rejects_malformed_configuration_lines() {
-    let result =
-        Config::from_sources(Some("NVR_HOST localhost\n"), Vec::<(String, String)>::new());
+    let result = Config::from_sources(Some("NVR_HOST localhost\n"), Vec::<(String, String)>::new());
 
     assert!(result.unwrap_err().to_string().contains("KEY=VALUE"));
 }

@@ -58,7 +58,9 @@ where
 
     for argument in arguments {
         if argument == "--config" {
-            return Err("--config requires a path, for example --config=config/dag-nvr-ai.conf".to_owned());
+            return Err(
+                "--config requires a path, for example --config=config/dag-nvr-ai.conf".to_owned(),
+            );
         }
 
         if let Some(value) = argument.strip_prefix("--config=") {

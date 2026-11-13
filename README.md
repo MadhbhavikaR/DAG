@@ -4,7 +4,7 @@ Event-driven NVR monitoring and AI orchestration for a Hikvision DS-7616NXI-K1 N
 
 ## Project status
 
-The Rust foundation is implemented in version 0.2.2. NVR connectivity, RTSP ingestion and AI inference are subsequent features and are not yet implemented.
+The Rust foundation is implemented in version 0.2.3. NVR connectivity, RTSP ingestion and AI inference are subsequent features and are not yet implemented.
 
 ## Target hardware
 
