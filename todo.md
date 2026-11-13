@@ -24,11 +24,11 @@
 ### Research and design
 - [x] Confirm ARM64 Rust toolchain target support; the official target table lists aarch64-unknown-linux-gnu as Tier 1.
 - [x] Research baseline libc compatibility: Rust documents glibc 2.17+ for aarch64-unknown-linux-gnu; target runtime/linker validation on the Nano remains pending.
-- [ ] Select and pin a Rust MSRV that can be installed and built on the target.
+- [x] Select Rust 1.85 as the declared MSRV; pin the development/CI toolchain to stable Rust 1.100.0 (2026-11-12 release).
 - [x] Establish dependency MSRV/native-library evaluation as a prerequisite; no runtime crates selected yet.
-- [ ] Define workspace boundaries and dependency direction.
-- [ ] Define configuration precedence, validation, secret handling and example files.
-- [ ] Record workspace and compatibility decisions in ADR/DAR.
+- [x] Define a single-package Cargo workspace initially; add internal modules with one-way dependencies and no cross-crate complexity until justified.
+- [x] Define precedence as built-in defaults < config file < environment variables; validate before startup and keep secrets out of tracked config.
+- [x] Record Rust version, edition, dependency-minimization and config-format choices in DAR-002.
 
 ### Implementation
 - [ ] Replace the Python template package with a Rust Cargo workspace.

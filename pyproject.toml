@@ -1,6 +1,6 @@
 [project]
 name = "dag-template-python"
-version = "0.1.1"
+version = "0.1.2"
 description = "A production-minded Python project template managed with uv."
 readme = "README.md"
 requires-python = ">=3.12"
