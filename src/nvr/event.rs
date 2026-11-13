@@ -100,7 +100,7 @@ fn parse_xml_fields(xml: &[u8]) -> Result<BTreeMap<String, String>, NvrError> {
 
     let mut buffer = Vec::new();
     let mut current_field: Option<String> = None;
-    let mut fields = BTreeMap::new();
+    let mut fields: BTreeMap<String, String> = BTreeMap::new();
 
     loop {
         match reader.read_event_into(&mut buffer) {
