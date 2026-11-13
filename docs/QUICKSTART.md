@@ -78,6 +78,6 @@ cargo build --locked --release
 
 ## Current scope and next feature
 
-Version 0.2.4 provides the Rust application foundation, configuration validation, JSON-lines logging, health/version commands and CI cross-build checks. ISAPI event ingestion, RTSP stream retrieval, SQLite persistence, AI inference and Telegram notifications are not yet implemented.
+Version 0.2.5 provides the Rust application foundation, configuration validation, JSON-lines logging, health/version commands and CI cross-build checks. ISAPI event ingestion, RTSP stream retrieval, SQLite persistence, AI inference and Telegram notifications are not yet implemented.
 
 See the root [todo.md](../todo.md) for the implementation sequence and hardware acceptance checks.

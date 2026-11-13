@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
-**Current baseline:** 0.2.4 (F-001 CI checks passed; Jetson hardware validation pending)  
+**Current baseline:** 0.2.5 (F-001 CI checks passed; Jetson hardware validation pending)  
 **Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
 **Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -59,16 +59,19 @@
 
 **Type:** Atomic feature  
 **Target version:** 0.3.0  
-**Status:** [ ] pending  
+**Status:** [~] protocol research complete; implementation pending  
 **Dependency:** F-001
 
 ### Research and design
-- [ ] Verify exact ISAPI device-info response on the user's NVR firmware.
-- [ ] Verify Digest authentication behavior and least-privilege account permissions.
-- [ ] Capture representative alertStream payloads for motion active/inactive, heartbeat and reconnect.
-- [ ] Confirm actual event type strings, XML namespaces, channel identifiers and timestamp formats.
-- [ ] Decide bounded multipart/XML framing strategy and maximum payload size.
-- [ ] Record protocol assumptions and threat mitigations in ADR/DAR.
+- [x] Review Hikvision ISAPI alertStream semantics: persistent HTTP connection carrying event and heartbeat XML.
+- [x] Review Hikvision NVR HTTP Digest authentication guidance and least-privilege account requirement.
+- [x] Evaluate Rust curl bindings, direct HTTP/Digest implementation and curl CLI process adapter.
+- [x] Select curl CLI adapter for the first transport slice: no custom cryptography, no Rust FFI, no additional network stack; pass credentials through stdin config rather than command-line arguments.
+- [x] Select quick-xml 0.38.3 with memchr 2.7.5 for bounded, pull-based XML parsing; pin versions and lockfile.
+- [x] Define event framing limits and reject oversized/incomplete payloads.
+- [x] Record protocol alternatives, security implications and validation gaps in DAR-003.
+- [ ] Verify installed curl version and Digest algorithm compatibility on the actual Jetson/NVR.
+- [ ] Capture real event payloads and confirm event type strings, XML namespaces, channel IDs and timestamps on hardware.
 
 ### Implementation
 - [ ] Implement typed NVR connection configuration.
