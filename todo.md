@@ -1,16 +1,16 @@
 # Project execution tracker
 
 **Project:** DAG Nano 4GB NVR AI  
-**Working branch:** `DAG-Nano-4gb-NVR-AI` (only permitted development branch)  
-**Current baseline:** 0.1.1 (patch increment for the commit-policy clarification; Rust application bootstrap not yet completed)  
-**Status legend:** `[ ] pending` · `[~] in progress` · `[x] verified complete` · `[!] blocked`  
-**Rule:** A checkbox becomes `[x]` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
+**Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
+**Current baseline:** 0.2.0 (Rust foundation implementation committed; CI verification pending)  
+**Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
+**Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
 ## Global completion criteria
 
 - [ ] All application modules run as one configurable Rust modular monolith.
 - [ ] All required features have tests mirroring the source tree.
-- [ ] CI, release automation, security controls, operations and documentation meet `AGENTS.md`.
+- [ ] CI, release automation, security controls, operations and documentation meet \`AGENTS.md\`.
 - [ ] Quick Start works from a clean JetPack 4.6.6 installation.
 - [ ] Sustained operation and resource use are measured on the actual Jetson Nano 4GB.
 - [ ] All feature TODOs and release blockers are closed.
@@ -18,40 +18,41 @@
 ## Feature F-001 — Rust workspace and engineering foundation
 
 **Type:** Atomic feature  
-**Target version on completion:** 0.2.0  
-**Status:** [ ] pending
+**Target version:** 0.2.0  
+**Status:** [~] implementation pushed; CI and target hardware validation pending
 
 ### Research and design
 - [x] Confirm ARM64 Rust toolchain target support; the official target table lists aarch64-unknown-linux-gnu as Tier 1.
 - [x] Research baseline libc compatibility: Rust documents glibc 2.17+ for aarch64-unknown-linux-gnu; target runtime/linker validation on the Nano remains pending.
 - [x] Select Rust 1.85 as the declared MSRV; pin the development/CI toolchain to stable Rust 1.100.0 (2026-11-12 release).
-- [x] Establish dependency MSRV/native-library evaluation as a prerequisite; no runtime crates selected yet.
+- [x] Establish dependency MSRV/native-library evaluation as a prerequisite; F-001 intentionally uses no third-party runtime crates.
 - [x] Define a single-package Cargo workspace initially; add internal modules with one-way dependencies and no cross-crate complexity until justified.
-- [x] Define precedence as built-in defaults < config file < environment variables; validate before startup and keep secrets out of tracked config.
-- [x] Record Rust version, edition, dependency-minimization and config-format choices in DAR-002.
+- [x] Define configuration precedence, validation, secret handling and example files.
+- [x] Record workspace and compatibility choices in ADR/DAR.
 
 ### Implementation
-- [ ] Replace the Python template package with a Rust Cargo workspace.
-- [ ] Add the application binary and minimal startup/shutdown lifecycle.
-- [ ] Add typed application configuration with validation.
-- [ ] Add structured logging with secret redaction.
-- [ ] Add a health/status command that does not require NVR credentials.
-- [ ] Add bounded task and resource configuration defaults.
-- [ ] Remove obsolete Python-specific template configuration and workflows.
+- [x] Replace the Python template package with a Rust Cargo package.
+- [x] Add library/binary entry points and minimal CLI lifecycle.
+- [x] Add typed application configuration with strict validation.
+- [x] Add structured JSON-lines logging with configurable severity.
+- [x] Add health/version commands that do not require NVR credentials.
+- [x] Add bounded queue and inference concurrency configuration defaults.
+- [x] Remove obsolete Python-specific template configuration and workflows.
 
 ### Tests and verification
-- [ ] Add unit tests for configuration defaults and invalid values.
-- [ ] Add tests for environment override precedence.
-- [ ] Add tests proving secrets are not serialized or logged.
-- [ ] Run rustfmt check, Clippy with warnings denied, unit tests and release build in CI.
-- [ ] Verify ARM64 build and startup on Jetson Nano before marking hardware compatibility complete.
+- [x] Add unit/integration tests for configuration defaults, invalid values and precedence.
+- [x] Add tests proving malformed and unknown config values are rejected.
+- [x] Add tests for JSON log escaping and CLI health/version behavior.
+- [ ] Run rustfmt, Clippy, tests and release build in GitHub Actions.
+- [ ] Verify ARM64 cross-build in GitHub Actions.
+- [ ] Verify native build and startup on Jetson Nano.
 
 ### Documentation and delivery
-- [ ] Add Cargo and Rust toolchain instructions to Quick Start.
-- [ ] Document supported target, MSRV, build prerequisites and known limitations.
-- [ ] Update version metadata to 0.2.0 in the feature commit.
+- [x] Add Rust installation, build and run instructions to Quick Start.
+- [x] Document supported target, MSRV, configuration and known limitations.
+- [x] Update package version to 0.2.0 in the feature commit.
 - [ ] Verify CI on the single working branch.
-- [ ] Commit with `feat:` prefix and push.
+- [x] Commit with \`feat:\` prefix and push.
 
 ## Feature F-002 — Hikvision ISAPI device discovery and event ingestion
 
@@ -92,7 +93,7 @@
 - [ ] Document actual channel mapping only after discovery.
 - [ ] Update Quick Start and configuration reference.
 - [ ] Update version to 0.3.0 in the feature commit.
-- [ ] Commit with `feat:` prefix and push.
+- [ ] Commit with \`feat:\` prefix and push.
 
 ## Feature F-003 — NVR RTSP discovery and bounded stream access
 

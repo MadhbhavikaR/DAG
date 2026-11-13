@@ -3,40 +3,58 @@ name: Release
 on:
   push:
     tags:
-      - "DAG-Template-Python_*"
+      - "DAG-Nano-4gb-NVR-AI_*"
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-\${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Validate tag and publish release
-    runs-on: ubuntu-latest
+  validate-and-release:
+    name: Validate once and publish release
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v4
 
-      - name: Validate tag format
+      - name: Validate semantic version tag and package version
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: \${{ github.ref_name }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^DAG-Template-Python_(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Invalid tag '$RELEASE_TAG'. Expected DAG-Template-Python_X.Y.Z using semantic versioning."
+          if [[ ! "$RELEASE_TAG" =~ ^DAG-Nano-4gb-NVR-AI_(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Invalid tag. Expected DAG-Nano-4gb-NVR-AI_X.Y.Z."
+            exit 1
+          fi
+          TAG_VERSION="\${RELEASE_TAG#DAG-Nano-4gb-NVR-AI_}"
+          PACKAGE_VERSION="$(sed -n 's/^version = "\\([^"]*\\)"/\\1/p' Cargo.toml | head -n 1)"
+          if [[ "$TAG_VERSION" != "$PACKAGE_VERSION" ]]; then
+            echo "::error::Tag version $TAG_VERSION does not match Cargo.toml version $PACKAGE_VERSION."
             exit 1
           fi
 
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Run release test suite (once)
+        run: cargo test --locked --all-targets --release
+
+      - name: Build optimized application
+        run: cargo build --locked --release
+
       - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: \${{ github.repository }}
+          RELEASE_TAG: \${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" \
-            --verify-tag \
-            --title "$RELEASE_TAG" \
+          gh release create "$RELEASE_TAG" \\
+            --verify-tag \\
+            --title "$RELEASE_TAG" \\
             --generate-notes

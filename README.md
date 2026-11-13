@@ -1,79 +1,51 @@
-# DAG Template Python
+# DAG Nano 4GB NVR AI
 
-A reusable Python project template using [uv](https://docs.astral.sh/uv/) for dependency and environment management, Ruff for formatting and linting, mypy for static type checking, and pytest for testing.
+Event-driven NVR monitoring and AI orchestration for a Hikvision DS-7616NXI-K1 NVR and 13 allocated channels, using a Jetson Nano 4GB as a selective AI processor.
 
-## Requirements
+## Project status
 
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- Git
+The Rust foundation is implemented in version 0.2.0. NVR connectivity, RTSP ingestion and AI inference are subsequent features and are not yet implemented.
 
-## Get started
+## Target hardware
 
-```bash
-git clone https://github.com/MadhbhavikaR/DAG.git
-cd DAG
-git switch DAG-Template-Python
-uv sync --all-groups
-uv run python -m dag_template_python.cli
-```
+- Hikvision DS-7616NXI-K1, firmware V4.83.010 build 241118
+- NVR address: 192.168.100.103
+- HTTP/ISAPI port: 80
+- RTSP port: 554 (verify on the NVR before integration)
+- 13 allocated channels; physical channel mapping remains to be discovered
+- 11 Hikvision DS-2CD1041G2-LIU cameras
+- 2 CP Plus CP-UNC-TA41L3C-D-LQ cameras
+- Jetson Nano 4GB, JetPack 4.6.6 / L4T 32.7.6
 
-The template branch is named `DAG-Template-Python`. When using this repository as a starting point for a new project, rename the project in `pyproject.toml`, update the package directory under `src/`, and update the wheel package configuration and tests accordingly.
+## Quick Start
 
-## Project layout
+See [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
-```text
-.
-├── .github/
-│   ├── pull_request_template.md
-│   └── workflows/
-│       ├── ci.yml
-│       └── release.yml
-├── src/
-│   └── dag_template_python/
-│       ├── __init__.py
-│       └── cli.py
-├── tests/
-│   └── test_cli.py
-├── .python-version
-├── pyproject.toml
-└── README.md
-```
+Install the pinned Rust toolchain, then validate configuration:
 
-## Development commands
+\`\`\`bash
+cargo run --locked -- validate-config --config=config/dag-nvr-ai.example.conf
+cargo run --locked -- health
+cargo test --locked
+\`\`\`
 
-```bash
-uv sync --all-groups
-uv run python -m dag_template_python.cli
-uv run ruff format .
-uv run ruff format --check .
-uv run ruff check .
-uv run ruff check --fix .
-uv run mypy
-uv run pytest --cov --cov-report=term-missing
-```
+## Architecture
 
-CI runs formatting checks, linting, strict mypy checks, and tests with coverage on pushes and pull requests. Keep `uv.lock` committed for applications so local and CI dependency resolution stays reproducible; generate it with `uv lock` and commit it alongside dependency changes.
+The NVR remains the continuous recorder and first-stage motion event source. The Jetson will consume NVR events, retrieve only relevant streams, and progressively add detection, tracking, zone rules and notifications.
 
-## Releases
+The application is a configurable, event-driven Rust modular monolith. AI inference will use a replaceable adapter around the JetPack-compatible TensorRT/CUDA stack; the Rust core will own orchestration, rules, storage and notifications.
 
-Pushing a tag matching `DAG-Template-Python_X.Y.Z` automatically creates a GitHub Release with generated release notes. The workflow accepts stable semantic versions only: three numeric components, no leading zeroes except for zero itself, and no `v` prefix.
+## Development
 
-```bash
-git switch DAG-Template-Python
-git pull --ff-only
-uv run pytest
-git tag -a DAG-Template-Python_1.0.0 -m "Release 1.0.0"
-git push origin DAG-Template-Python_1.0.0
-```
+Read [AGENTS.md](AGENTS.md) before contributing. Work only on branch \`DAG-Nano-4gb-NVR-AI\`. The root [todo.md](todo.md) is the project execution source of truth.
 
-The tag must point to the commit you want to release. The workflow validates the tag and uses GitHub's CLI to publish the release. The workflow requires the repository Actions token to have contents write permission.
+CI runs formatting, Clippy, tests, an optimized host build and an ARM64 Linux cross-build. Hardware validation on the Jetson is still required before claiming deployment compatibility.
 
-## Quality principles
+## Documentation
 
-- Keep application code in `src/` so tests exercise the installed package layout.
-- Declare runtime dependencies in `[project].dependencies` and developer tools in `[dependency-groups].dev`.
-- Commit `uv.lock` for reproducible application environments.
-- Add tests for new behavior and keep meaningful coverage.
-- Keep type annotations explicit and run formatting, linting, and type checks before pushing.
-- Never commit secrets; use GitHub Actions secrets for credentials.
+- [Quick Start](docs/QUICKSTART.md)
+- [Documentation index](docs/README.md)
+- [Architecture ADRs](docs/architecture/ADR/README.md)
+- [Decision Analysis and Review](docs/architecture/DAR/README.md)
+- [Configuration](docs/configuration/README.md)
+- [Development](docs/development/README.md)

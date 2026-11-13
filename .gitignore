@@ -1,36 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.eggs/
-dist/
-build/
-.Python
-
-# Virtual environments
-.venv/
-venv/
-ENV/
-
-# Tool caches and coverage
-.ruff_cache/
-.mypy_cache/
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
-
-# Editors and operating systems
+/target/
+/runtime/
+/config/dag-nvr-ai.local.conf
+.env
+.env.*
 .idea/
 .vscode/
 .DS_Store
-Thumbs.db
-
-# Local environment
-.env
-.env.*
-!.env.example
-
-# Keep uv.lock committed for reproducible application environments.
+*.swp

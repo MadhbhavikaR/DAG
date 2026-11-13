@@ -1,19 +1,42 @@
 # Configuration
 
-The application will use validated configuration files with environment overrides for deployment-specific values and secrets.
+The foundation uses a deliberately small UTF-8 \`KEY=VALUE\` file. It is not a general-purpose configuration language. Unknown keys, duplicate keys, malformed lines, empty values and invalid ranges are rejected.
 
-Configuration precedence will be documented when implemented. No credentials belong in tracked files. Example configuration must contain placeholders or non-secret defaults only.
+## Precedence
 
-Planned configurable groups:
+1. Built-in defaults.
+2. Selected config file.
+3. Environment variables prefixed with \`DAG_\`.
 
-- NVR connection and authentication.
-- Channel-to-camera mapping.
-- RTSP port, stream selection and transport.
-- Event types, deduplication and queue bounds.
-- Decoder and inference concurrency.
-- Detection thresholds and zones.
-- Storage, retention and evidence handling.
-- Telegram notification behavior.
-- Logging, health checks and resource budgets.
+## Supported file keys
 
-Only settings implemented and validated by the application will appear in the final configuration reference.
+| Key | Default | Validation |
+|---|---|---|
+| \`NVR_HOST\` | \`127.0.0.1\` | Non-empty hostname/IP without whitespace |
+| \`NVR_HTTP_PORT\` | \`80\` | 1–65535 |
+| \`NVR_RTSP_PORT\` | \`554\` | 1–65535 |
+| \`NVR_CHANNELS\` | \`13\` | 1–16 |
+| \`EVENT_QUEUE_CAPACITY\` | \`128\` | 1–4096 |
+| \`MAX_CONCURRENT_INFERENCE\` | \`1\` | 1–2 |
+| \`LOG_LEVEL\` | \`info\` | error, warn, info, debug |
+| \`DATA_DIR\` | \`runtime\` | Non-empty path |
+
+The inference concurrency limit is intentionally conservative for Jetson Nano 4GB. Raising it does not guarantee that the hardware can sustain it; future inference features must measure and enforce resource budgets.
+
+## Environment overrides
+
+Prefix file keys with \`DAG_\`, for example:
+
+\`\`\`bash
+export DAG_NVR_HOST=192.168.100.103
+export DAG_NVR_CHANNELS=13
+export DAG_LOG_LEVEL=debug
+\`\`\`
+
+## Example
+
+Copy \`config/dag-nvr-ai.example.conf\` to \`config/dag-nvr-ai.local.conf\`. The local filename is ignored by Git. Do not put passwords, usernames, Telegram tokens or other secrets in the config file.
+
+## Scope
+
+This is the foundation configuration only. Camera mapping, zones, retention, notification and model settings will be added with their corresponding features and documented with validation rules.

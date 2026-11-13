@@ -1,0 +1,29 @@
+[package]
+name = "dag-nvr-ai"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Event-driven NVR monitoring and AI orchestration for Jetson Nano"
+license = "MIT"
+publish = false
+
+[lib]
+name = "dag_nvr_ai"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dag-nvr-ai"
+path = "src/main.rs"
+
+[workspace]
+resolver = "2"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
