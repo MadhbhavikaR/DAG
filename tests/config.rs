@@ -49,7 +49,10 @@ fn rejects_unknown_configuration_keys() {
         Vec::<(String, String)>::new(),
     );
 
-    assert!(result.unwrap_err().to_string().contains("unknown configuration key"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("unknown configuration key"));
 }
 
 #[test]
@@ -59,15 +62,16 @@ fn rejects_duplicate_configuration_keys() {
         Vec::<(String, String)>::new(),
     );
 
-    assert!(result.unwrap_err().to_string().contains("duplicate configuration key"));
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("duplicate configuration key"));
 }
 
 #[test]
 fn rejects_malformed_configuration_lines() {
-    let result = Config::from_sources(
-        Some("NVR_HOST localhost\n"),
-        Vec::<(String, String)>::new(),
-    );
+    let result =
+        Config::from_sources(Some("NVR_HOST localhost\n"), Vec::<(String, String)>::new());
 
     assert!(result.unwrap_err().to_string().contains("KEY=VALUE"));
 }
@@ -103,11 +107,8 @@ fn rejects_unknown_log_levels_and_empty_values() {
 
 #[test]
 fn ignores_unrelated_environment_variables() {
-    let config = Config::from_sources(
-        None,
-        vec![("HOME".to_owned(), "/tmp/user".to_owned())],
-    )
-    .expect("unrelated environment variables must be ignored");
+    let config = Config::from_sources(None, vec![("HOME".to_owned(), "/tmp/user".to_owned())])
+        .expect("unrelated environment variables must be ignored");
 
     assert_eq!(config.nvr_host, "127.0.0.1");
 }

@@ -106,21 +106,17 @@ impl Config {
     /// Precedence is built-in defaults < file values < DAG_* environment values.
     pub fn load(path: Option<&Path>) -> Result<Self, ConfigError> {
         let contents = match path {
-            Some(config_path) => Some(
-                fs::read_to_string(config_path).map_err(|error| {
-                    ConfigError::new(format!(
-                        "cannot read configuration file {}: {error}",
-                        config_path.display()
-                    ))
-                })?,
-            ),
+            Some(config_path) => Some(fs::read_to_string(config_path).map_err(|error| {
+                ConfigError::new(format!(
+                    "cannot read configuration file {}: {error}",
+                    config_path.display()
+                ))
+            })?),
             None => {
                 let default_path = Path::new("config/dag-nvr-ai.local.conf");
                 if default_path.is_file() {
                     Some(fs::read_to_string(default_path).map_err(|error| {
-                        ConfigError::new(format!(
-                            "cannot read default configuration file: {error}"
-                        ))
+                        ConfigError::new(format!("cannot read default configuration file: {error}"))
                     })?)
                 } else {
                     None
@@ -307,7 +303,9 @@ where
 {
     match values.get(key) {
         Some(value) => value.parse::<T>().map_err(|_| {
-            ConfigError::new(format!("configuration value for {key} is not a valid number"))
+            ConfigError::new(format!(
+                "configuration value for {key} is not a valid number"
+            ))
         }),
         None => Ok(default),
     }
