@@ -24,12 +24,7 @@ pub struct CurlTransport {
 
 impl CurlTransport {
     /// Create a transport using a validated host/port and secret credentials.
-    pub fn new(
-        binary: PathBuf,
-        host: String,
-        port: u16,
-        credentials: NvrCredentials,
-    ) -> Self {
+    pub fn new(binary: PathBuf, host: String, port: u16, credentials: NvrCredentials) -> Self {
         Self {
             binary,
             host,
@@ -78,7 +73,9 @@ impl CurlTransport {
             let _ = child.kill();
             let _ = child.wait();
             let _ = stderr_reader.join();
-            return Err(NvrError::new("failed while reading NVR device-info response"));
+            return Err(NvrError::new(
+                "failed while reading NVR device-info response",
+            ));
         }
 
         if body.len() > MAX_DEVICE_INFO_BYTES {
@@ -173,17 +170,15 @@ impl CurlTransport {
         if write_result.is_err() {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(NvrError::new("could not provide curl request configuration"));
+            return Err(NvrError::new(
+                "could not provide curl request configuration",
+            ));
         }
 
         Ok(child)
     }
 
-    fn build_curl_config(
-        &self,
-        path: &str,
-        max_time_seconds: u64,
-    ) -> Result<Vec<u8>, NvrError> {
+    fn build_curl_config(&self, path: &str, max_time_seconds: u64) -> Result<Vec<u8>, NvrError> {
         let url = format!("http://{}:{}{}", self.host, self.port, path);
         let user_pass_length =
             self.credentials.username().len() + 1 + self.credentials.password().len();
@@ -255,11 +250,7 @@ impl Drop for AlertStream {
     }
 }
 
-fn append_quoted_option(
-    output: &mut Vec<u8>,
-    name: &str,
-    value: &[u8],
-) -> Result<(), NvrError> {
+fn append_quoted_option(output: &mut Vec<u8>, name: &str, value: &[u8]) -> Result<(), NvrError> {
     if value.iter().any(|byte| *byte < 0x20 || *byte == 0x7f) {
         return Err(NvrError::new(
             "curl config values must not contain control characters",

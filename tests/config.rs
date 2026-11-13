@@ -112,7 +112,6 @@ fn ignores_unrelated_environment_variables() {
     assert_eq!(config.nvr_host, "127.0.0.1");
 }
 
-
 #[test]
 fn curl_binary_is_configurable_from_file_and_environment() {
     let config = Config::from_sources(

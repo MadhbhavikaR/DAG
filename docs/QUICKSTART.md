@@ -114,6 +114,6 @@ cargo build --locked --release
 
 ## Current scope
 
-Version 0.3.0 provides Rust foundation, configuration validation, Digest-authenticated ISAPI device probing, persistent motion-event ingestion, bounded XML framing and structured logging. RTSP stream retrieval, SQLite persistence, AI inference, virtual fencing and Telegram notifications are subsequent features.
+Version 0.3.1 provides Rust foundation, configuration validation, Digest-authenticated ISAPI device probing, persistent motion-event ingestion, bounded XML framing and structured logging. RTSP stream retrieval, SQLite persistence, AI inference, virtual fencing and Telegram notifications are subsequent features.
 
 See the root [todo.md](../todo.md) for the implementation sequence and hardware acceptance checks.

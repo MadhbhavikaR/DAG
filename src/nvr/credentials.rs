@@ -13,9 +13,7 @@ pub struct NvrCredentials {
 impl NvrCredentials {
     /// Construct credentials after validating curl config constraints.
     pub fn new(username: &str, password: &str) -> Result<Self, NvrError> {
-        if username.is_empty()
-            || username.contains(':')
-            || username.chars().any(char::is_control)
+        if username.is_empty() || username.contains(':') || username.chars().any(char::is_control)
         {
             return Err(NvrError::new(
                 "NVR username must be non-empty and must not contain ':' or control characters",

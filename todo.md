@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
-**Current baseline:** 0.3.0 (F-001 CI checks passed; F-002 implementation committed; NVR hardware validation pending)  
+**Current baseline:** 0.3.1 (F-002 formatting correction committed; CI rerun and NVR hardware validation pending)  
 **Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
 **Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -59,7 +59,7 @@
 
 **Type:** Atomic feature  
 **Target version:** 0.3.0  
-**Status:** [~] implementation committed; CI and NVR hardware validation pending  
+**Status:** [~] implementation and formatting correction committed; CI rerun and NVR hardware validation pending  
 **Dependency:** F-001
 
 ### Research and design

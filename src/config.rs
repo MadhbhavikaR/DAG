@@ -186,9 +186,10 @@ impl Config {
     pub fn validate(&self) -> Result<(), ConfigError> {
         if self.nvr_host.is_empty()
             || self.nvr_host.len() > 253
-            || !self.nvr_host.chars().all(|character| {
-                character.is_ascii_alphanumeric() || ".-:[]".contains(character)
-            })
+            || !self
+                .nvr_host
+                .chars()
+                .all(|character| character.is_ascii_alphanumeric() || ".-:[]".contains(character))
         {
             return Err(ConfigError::new(
                 "NVR_HOST must be a hostname, IPv4 address or bracketed IPv6 address",

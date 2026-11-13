@@ -24,7 +24,7 @@ fn health_command_reports_application_status() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
     assert!(stdout.contains("\"status\":\"ok\""));
-    assert!(stdout.contains("\"version\":\"0.3.0\""));
+    assert!(stdout.contains("\"version\":\"0.3.1\""));
 }
 
 #[test]
@@ -72,6 +72,6 @@ fn version_command_matches_package_metadata() {
         String::from_utf8(output.stdout)
             .expect("stdout should be UTF-8")
             .trim(),
-        "dag-nvr-ai 0.3.0"
+        "dag-nvr-ai 0.3.1"
     );
 }
