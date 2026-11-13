@@ -22,10 +22,10 @@
 **Status:** [ ] pending
 
 ### Research and design
-- [ ] Confirm ARM64 Rust toolchain installation and compiler support for the target.
-- [ ] Confirm target glibc and linker compatibility on JetPack 4.6.6 / L4T 32.7.6.
+- [x] Confirm ARM64 Rust toolchain target support; the official target table lists aarch64-unknown-linux-gnu as Tier 1.
+- [x] Research baseline libc compatibility: Rust documents glibc 2.17+ for aarch64-unknown-linux-gnu; target runtime/linker validation on the Nano remains pending.
 - [ ] Select and pin a Rust MSRV that can be installed and built on the target.
-- [ ] Evaluate dependency MSRV and native library requirements before selecting crates.
+- [x] Establish dependency MSRV/native-library evaluation as a prerequisite; no runtime crates selected yet.
 - [ ] Define workspace boundaries and dependency direction.
 - [ ] Define configuration precedence, validation, secret handling and example files.
 - [ ] Record workspace and compatibility decisions in ADR/DAR.
