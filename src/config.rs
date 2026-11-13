@@ -7,7 +7,6 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Supported application log levels.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LogLevel {
     Error,
@@ -17,7 +16,6 @@ pub enum LogLevel {
 }
 
 impl LogLevel {
-    /// Parse a supported log level.
     pub fn parse(value: &str) -> Result<Self, ConfigError> {
         match value.to_ascii_lowercase().as_str() {
             "error" => Ok(Self::Error),
@@ -30,7 +28,6 @@ impl LogLevel {
         }
     }
 
-    /// Return the canonical lowercase representation.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Error => "error",
@@ -50,20 +47,20 @@ impl LogLevel {
     }
 }
 
-/// Validated runtime configuration. This type deliberately contains no secrets.
+/// Validated runtime configuration. Secrets are deliberately excluded.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
     pub nvr_host: String,
     pub nvr_http_port: u16,
     pub nvr_rtsp_port: u16,
     pub nvr_channels: u8,
+    pub curl_bin: PathBuf,
     pub event_queue_capacity: usize,
     pub max_concurrent_inference: usize,
     pub log_level: LogLevel,
     pub data_dir: PathBuf,
 }
 
-/// Configuration parsing and validation error.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConfigError {
     message: String,
@@ -92,6 +89,7 @@ impl Default for Config {
             nvr_http_port: 80,
             nvr_rtsp_port: 554,
             nvr_channels: 13,
+            curl_bin: PathBuf::from("curl"),
             event_queue_capacity: 128,
             max_concurrent_inference: 1,
             log_level: LogLevel::Info,
@@ -101,9 +99,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load the optional config file, then apply environment overrides.
-    ///
-    /// Precedence is built-in defaults < file values < DAG_* environment values.
+    /// Load defaults, an optional file, then DAG_* environment overrides.
     pub fn load(path: Option<&Path>) -> Result<Self, ConfigError> {
         let contents = match path {
             Some(config_path) => Some(fs::read_to_string(config_path).map_err(|error| {
@@ -127,9 +123,7 @@ impl Config {
         Self::from_sources(contents.as_deref(), env::vars())
     }
 
-    /// Build validated configuration from file contents and injected environment pairs.
-    ///
-    /// Injecting environment pairs makes precedence deterministic and testable.
+    /// Build configuration from file text and injected environment pairs.
     pub fn from_sources<I, K, V>(
         file_contents: Option<&str>,
         environment: I,
@@ -140,7 +134,6 @@ impl Config {
         V: AsRef<str>,
     {
         let mut values = BTreeMap::new();
-
         if let Some(contents) = file_contents {
             for (key, value) in parse_config_file(contents)? {
                 values.insert(key, value);
@@ -164,6 +157,9 @@ impl Config {
             nvr_http_port: number_value(&values, "NVR_HTTP_PORT", defaults.nvr_http_port)?,
             nvr_rtsp_port: number_value(&values, "NVR_RTSP_PORT", defaults.nvr_rtsp_port)?,
             nvr_channels: number_value(&values, "NVR_CHANNELS", defaults.nvr_channels)?,
+            curl_bin: string_value(&values, "CURL_BIN")
+                .map(PathBuf::from)
+                .unwrap_or(defaults.curl_bin),
             event_queue_capacity: number_value(
                 &values,
                 "EVENT_QUEUE_CAPACITY",
@@ -187,14 +183,15 @@ impl Config {
         Ok(config)
     }
 
-    /// Validate ranges and values that are independent of a particular device.
     pub fn validate(&self) -> Result<(), ConfigError> {
         if self.nvr_host.is_empty()
             || self.nvr_host.len() > 253
-            || self.nvr_host.chars().any(char::is_whitespace)
+            || !self.nvr_host.chars().all(|character| {
+                character.is_ascii_alphanumeric() || ".-:[]".contains(character)
+            })
         {
             return Err(ConfigError::new(
-                "NVR_HOST must be a non-empty hostname or IP address without whitespace",
+                "NVR_HOST must be a hostname, IPv4 address or bracketed IPv6 address",
             ));
         }
         if self.nvr_http_port == 0 || self.nvr_rtsp_port == 0 {
@@ -202,6 +199,9 @@ impl Config {
         }
         if !(1..=16).contains(&self.nvr_channels) {
             return Err(ConfigError::new("NVR_CHANNELS must be between 1 and 16"));
+        }
+        if self.curl_bin.as_os_str().is_empty() {
+            return Err(ConfigError::new("CURL_BIN must not be empty"));
         }
         if !(1..=4096).contains(&self.event_queue_capacity) {
             return Err(ConfigError::new(
@@ -268,6 +268,7 @@ fn is_supported_key(key: &str) -> bool {
             | "NVR_HTTP_PORT"
             | "NVR_RTSP_PORT"
             | "NVR_CHANNELS"
+            | "CURL_BIN"
             | "EVENT_QUEUE_CAPACITY"
             | "MAX_CONCURRENT_INFERENCE"
             | "LOG_LEVEL"
@@ -281,6 +282,7 @@ fn environment_key(name: &str) -> Option<&'static str> {
         "DAG_NVR_HTTP_PORT" => Some("NVR_HTTP_PORT"),
         "DAG_NVR_RTSP_PORT" => Some("NVR_RTSP_PORT"),
         "DAG_NVR_CHANNELS" => Some("NVR_CHANNELS"),
+        "DAG_CURL_BIN" => Some("CURL_BIN"),
         "DAG_EVENT_QUEUE_CAPACITY" => Some("EVENT_QUEUE_CAPACITY"),
         "DAG_MAX_CONCURRENT_INFERENCE" => Some("MAX_CONCURRENT_INFERENCE"),
         "DAG_LOG_LEVEL" => Some("LOG_LEVEL"),

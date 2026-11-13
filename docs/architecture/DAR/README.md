@@ -17,3 +17,9 @@ DAR records analyze a decision before or after implementation. Use them for alte
 11. References.
 
 Do not present assumptions as measured facts. Record unknowns as explicit discovery tasks.
+
+## Records
+
+- [DAR-001: Rust platform and runtime analysis](01-rust-platform-and-runtime-analysis.md)
+- [DAR-002: Rust workspace and configuration analysis](02-rust-workspace-and-configuration-analysis.md)
+- [DAR-003: Hikvision ISAPI transport and event parsing](03-hikvision-isapi-transport-analysis.md)

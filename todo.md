@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
-**Current baseline:** 0.2.5 (F-001 CI checks passed; Jetson hardware validation pending)  
+**Current baseline:** 0.3.0 (F-001 CI checks passed; F-002 implementation committed; NVR hardware validation pending)  
 **Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
 **Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -59,7 +59,7 @@
 
 **Type:** Atomic feature  
 **Target version:** 0.3.0  
-**Status:** [~] protocol research complete; implementation pending  
+**Status:** [~] implementation committed; CI and NVR hardware validation pending  
 **Dependency:** F-001
 
 ### Research and design
@@ -74,29 +74,29 @@
 - [ ] Capture real event payloads and confirm event type strings, XML namespaces, channel IDs and timestamps on hardware.
 
 ### Implementation
-- [ ] Implement typed NVR connection configuration.
-- [ ] Implement Digest-authenticated device-info probe.
-- [ ] Implement persistent alertStream client with explicit connect/read timeouts.
-- [ ] Implement bounded event document framing and XML parsing.
-- [ ] Normalize source, channel, event type, state and source timestamp.
-- [ ] Filter only configured event types and active transitions.
-- [ ] Implement reconnect with capped exponential backoff and jitter.
+- [x] Implement typed NVR connection configuration.
+- [x] Implement Digest-authenticated device-info probe.
+- [x] Implement persistent alertStream client with explicit connect/read timeouts.
+- [x] Implement bounded event document framing and XML parsing.
+- [x] Normalize source, channel, event type, state and source timestamp.
+- [x] Filter only configured event types and active transitions.
+- [x] Implement reconnect with capped exponential backoff and jitter.
 - [ ] Implement cancellation and graceful shutdown.
-- [ ] Emit structured diagnostics without credentials or full sensitive payloads.
+- [x] Emit structured diagnostics without credentials or full sensitive payloads.
 
 ### Tests and verification
-- [ ] Mirror NVR source modules under tests.
-- [ ] Test XML namespaces, fragmented chunks, multiple messages per chunk and malformed XML.
-- [ ] Test oversized and incomplete payload rejection.
-- [ ] Test event active/inactive normalization and unknown event types.
+- [x] Mirror NVR source modules under tests.
+- [x] Test XML namespaces, fragmented chunks, multiple messages per chunk and malformed XML.
+- [x] Test oversized and incomplete payload rejection.
+- [x] Test event active/inactive normalization and unknown event types.
 - [ ] Test reconnect, timeout, cancellation and server disconnect using a mock HTTP server.
 - [ ] Verify NVR device-info and motion event delivery on hardware.
 
 ### Documentation and delivery
-- [ ] Document NVR account permissions, HTTP/ISAPI settings and LAN security.
+- [x] Document NVR account permissions, HTTP/ISAPI settings and LAN security.
 - [ ] Document actual channel mapping only after discovery.
-- [ ] Update Quick Start and configuration reference.
-- [ ] Update version to 0.3.0 in the feature commit.
+- [x] Update Quick Start and configuration reference.
+- [x] Update version to 0.3.0 in the feature commit.
 - [ ] Commit with \`feat:\` prefix and push.
 
 ## Feature F-003 — NVR RTSP discovery and bounded stream access

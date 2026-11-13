@@ -16,3 +16,8 @@ Use one ADR per significant architectural decision. Number records sequentially.
 10. References.
 
 An ADR records a decision and its consequences; it is not a general design tutorial.
+
+## Accepted records
+
+- [ADR-0001: Rust-first modular monolith](ADR-0001-rust-first-modular-monolith.md)
+- [ADR-0002: System curl adapter for Hikvision ISAPI](ADR-0002-system-curl-isapi-transport.md)

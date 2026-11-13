@@ -1,11 +1,14 @@
 [package]
 name = "dag-nvr-ai"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.85"
 description = "Event-driven NVR monitoring and AI orchestration for Jetson Nano"
 license = "MIT"
 publish = false
+
+[dependencies]
+quick-xml = { version = "=0.38.3", default-features = false }
 
 [lib]
 name = "dag_nvr_ai"

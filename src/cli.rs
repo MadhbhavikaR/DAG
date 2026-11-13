@@ -1,9 +1,12 @@
-//! Minimal command-line interface for configuration validation and health.
+//! Command-line interface for configuration, health and NVR discovery.
 
-use crate::config::Config;
+use crate::config::{Config, LogLevel};
 use crate::logging::{self, log};
+use crate::nvr::client::HikvisionIsapiClient;
+use crate::nvr::credentials::NvrCredentials;
 use crate::VERSION;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 
 /// Execute the CLI using the supplied arguments (excluding argv[0]).
 pub fn run<I, S>(arguments: I) -> Result<(), String>
@@ -31,10 +34,7 @@ where
             let config_path = parse_config_argument(arguments)?;
             let config = Config::load(config_path.as_deref()).map_err(|error| error.to_string())?;
             logging::init(config.log_level);
-            log(
-                crate::config::LogLevel::Info,
-                "configuration validated successfully",
-            );
+            log(LogLevel::Info, "configuration validated successfully");
             println!(
                 "configuration valid: host={}, channels={}, queue_capacity={}, inference_concurrency={}",
                 config.nvr_host,
@@ -43,6 +43,41 @@ where
                 config.max_concurrent_inference
             );
             Ok(())
+        }
+        "probe-nvr" => {
+            let config_path = parse_config_argument(arguments)?;
+            let config = Config::load(config_path.as_deref()).map_err(|error| error.to_string())?;
+            logging::init(config.log_level);
+            let credentials = NvrCredentials::from_env().map_err(|error| error.to_string())?;
+            let client = HikvisionIsapiClient::new(&config, credentials);
+            let (curl_version, device) = client.probe().map_err(|error| error.to_string())?;
+            println!("NVR connectivity: OK");
+            println!("curl: {curl_version}");
+            println!("model: {}", device.model);
+            println!("firmware: {}", device.firmware_version);
+            println!("firmware build: {}", device.firmware_build);
+            println!("device name: {}", device.device_name);
+            Ok(())
+        }
+        "listen-events" => {
+            let config_path = parse_config_argument(arguments)?;
+            let config = Config::load(config_path.as_deref()).map_err(|error| error.to_string())?;
+            logging::init(config.log_level);
+            let credentials = NvrCredentials::from_env().map_err(|error| error.to_string())?;
+            let client = HikvisionIsapiClient::new(&config, credentials);
+            let stop = AtomicBool::new(false);
+            log(LogLevel::Info, "listening for active NVR motion events");
+            client
+                .listen(&stop, |event| {
+                    log(
+                        LogLevel::Info,
+                        &format!(
+                            "motion event: channel={} type={} timestamp={}",
+                            event.channel_id, event.event_type, event.timestamp
+                        ),
+                    );
+                })
+                .map_err(|error| error.to_string())
         }
         _ => Err(format!(
             "unknown command '{command}'. Run 'dag-nvr-ai help'."
@@ -83,7 +118,10 @@ fn print_help() {
          dag-nvr-ai help\n\
          dag-nvr-ai version\n\
          dag-nvr-ai health\n\
-         dag-nvr-ai validate-config [--config=PATH]\n\n\
+         dag-nvr-ai validate-config [--config=PATH]\n\
+         dag-nvr-ai probe-nvr [--config=PATH]\n\
+         dag-nvr-ai listen-events [--config=PATH]\n\n\
+         NVR credentials are read only from DAG_NVR_USERNAME and DAG_NVR_PASSWORD.\n\
          Configuration precedence: defaults < config file < DAG_* environment variables."
     );
 }

@@ -111,3 +111,25 @@ fn ignores_unrelated_environment_variables() {
 
     assert_eq!(config.nvr_host, "127.0.0.1");
 }
+
+
+#[test]
+fn curl_binary_is_configurable_from_file_and_environment() {
+    let config = Config::from_sources(
+        Some("CURL_BIN=/usr/bin/curl\n"),
+        vec![("DAG_CURL_BIN".to_owned(), "/opt/bin/curl".to_owned())],
+    )
+    .expect("curl path should be configurable");
+
+    assert_eq!(config.curl_bin, std::path::PathBuf::from("/opt/bin/curl"));
+}
+
+#[test]
+fn rejects_url_injection_characters_in_nvr_host() {
+    let result = Config::from_sources(
+        Some("NVR_HOST=bad\\\"host\n"),
+        Vec::<(String, String)>::new(),
+    );
+
+    assert!(result.is_err());
+}

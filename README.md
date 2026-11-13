@@ -4,14 +4,14 @@ Event-driven NVR monitoring and AI orchestration for a Hikvision DS-7616NXI-K1 N
 
 ## Project status
 
-The Rust foundation is implemented in version 0.2.5. NVR connectivity, RTSP ingestion and AI inference are subsequent features and are not yet implemented.
+Version 0.3.0 includes the Rust foundation and the first Hikvision ISAPI motion-event ingestion slice. Physical NVR validation is still required. RTSP frame retrieval, persistence, AI inference, tracking and Telegram notifications remain future features.
 
 ## Target hardware
 
 - Hikvision DS-7616NXI-K1, firmware V4.83.010 build 241118
 - NVR address: 192.168.100.103
 - HTTP/ISAPI port: 80
-- RTSP port: 554 (verify on the NVR before integration)
+- RTSP port: 554 (verify on the NVR before stream integration)
 - 13 allocated channels; physical channel mapping remains to be discovered
 - 11 Hikvision DS-2CD1041G2-LIU cameras
 - 2 CP Plus CP-UNC-TA41L3C-D-LQ cameras
@@ -21,25 +21,29 @@ The Rust foundation is implemented in version 0.2.5. NVR connectivity, RTSP inge
 
 See [docs/QUICKSTART.md](docs/QUICKSTART.md).
 
-Install the pinned Rust toolchain, then validate configuration:
+Probe NVR identity:
 
 \`\`\`bash
-cargo run --locked -- validate-config --config=config/dag-nvr-ai.example.conf
-cargo run --locked -- health
-cargo test --locked
+cargo run --locked -- probe-nvr --config=config/dag-nvr-ai.local.conf
+\`\`\`
+
+Start motion-event ingestion:
+
+\`\`\`bash
+cargo run --locked -- listen-events --config=config/dag-nvr-ai.local.conf
 \`\`\`
 
 ## Architecture
 
-The NVR remains the continuous recorder and first-stage motion event source. The Jetson will consume NVR events, retrieve only relevant streams, and progressively add detection, tracking, zone rules and notifications.
+The NVR remains the continuous recorder and first-stage motion event source. The Jetson consumes NVR events and will retrieve only relevant camera streams for subsequent AI processing.
 
-The application is a configurable, event-driven Rust modular monolith. AI inference will use a replaceable adapter around the JetPack-compatible TensorRT/CUDA stack; the Rust core will own orchestration, rules, storage and notifications.
+The application is a configurable, event-driven Rust modular monolith. The ISAPI adapter delegates HTTP Digest authentication to system curl, passes credentials through curl stdin configuration (not process arguments), and parses bounded XML documents with quick-xml.
 
 ## Development
 
 Read [AGENTS.md](AGENTS.md) before contributing. Work only on branch \`DAG-Nano-4gb-NVR-AI\`. The root [todo.md](todo.md) is the project execution source of truth.
 
-CI runs formatting, Clippy, tests, an optimized host build and an ARM64 Linux cross-build. Hardware validation on the Jetson is still required before claiming deployment compatibility.
+CI runs formatting, Clippy, tests, an optimized host build and an ARM64 Linux cross-build. Hardware validation on the Jetson and NVR is still required before claiming operational compatibility.
 
 ## Documentation
 
