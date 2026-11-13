@@ -4,7 +4,7 @@ Event-driven NVR monitoring and AI orchestration for a Hikvision DS-7616NXI-K1 N
 
 ## Project status
 
-Version 0.3.3 includes the Rust foundation and the first Hikvision ISAPI motion-event ingestion slice. Physical NVR validation is still required. RTSP frame retrieval, persistence, AI inference, tracking and Telegram notifications remain future features.
+Version 0.3.4 includes the Rust foundation and the first Hikvision ISAPI motion-event ingestion slice. Physical NVR validation is still required. RTSP frame retrieval, persistence, AI inference, tracking and Telegram notifications remain future features.
 
 ## Target hardware
 
