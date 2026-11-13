@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** \`DAG-Nano-4gb-NVR-AI\` (only permitted development branch)  
-**Current baseline:** 0.2.0 (Rust foundation implementation committed; CI verification pending)  
+**Current baseline:** 0.2.1 (Rust foundation implemented; CI rerun pending after formatting correction)  
 **Status legend:** \`[ ] pending\` · \`[~] in progress\` · \`[x] verified complete\` · \`[!] blocked\`  
 **Rule:** A checkbox becomes \`[x]\` only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -18,8 +18,9 @@
 ## Feature F-001 — Rust workspace and engineering foundation
 
 **Type:** Atomic feature  
-**Target version:** 0.2.0  
-**Status:** [~] implementation pushed; CI and target hardware validation pending
+**Feature version:** 0.2.0  
+**Current patch:** 0.2.1  
+**Status:** [~] implementation pushed; formatting correction pushed; CI verification pending
 
 ### Research and design
 - [x] Confirm ARM64 Rust toolchain target support; the official target table lists aarch64-unknown-linux-gnu as Tier 1.
