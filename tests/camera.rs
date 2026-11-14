@@ -14,8 +14,8 @@ fn builds_hikvision_nvr_main_and_substream_paths() {
 
 #[test]
 fn registry_uses_labels_and_fills_unmapped_channels() {
-    let registry = CameraRegistry::from_mapping(Some("# test\n1=front_gate\n3=driveway\n"), 3)
-        .unwrap();
+    let registry =
+        CameraRegistry::from_mapping(Some("# test\n1=front_gate\n3=driveway\n"), 3).unwrap();
 
     assert_eq!(registry.channels()[0].label, "front_gate");
     assert_eq!(registry.channels()[1].label, "channel-02");
