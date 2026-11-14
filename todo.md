@@ -2,7 +2,7 @@
 
 **Project:** DAG Nano 4GB NVR AI  
 **Working branch:** DAG-Nano-4gb-NVR-AI (only permitted development branch)  
-**Current baseline:** 0.4.2 (F-003 implementation committed; CI verification and hardware validation pending)  
+**Current baseline:** 0.4.3 (F-003 software implementation and CI verified; hardware validation pending)  
 **Status legend:** [ ] pending · [~] in progress · [x] verified complete · [!] blocked  
 **Rule:** A checkbox becomes [x] only after the stated evidence exists. Hardware-only checks remain pending until run on the Nano/NVR.
 
@@ -42,7 +42,7 @@
 
 **Type:** Atomic feature  
 **Version:** 0.4.0  
-**Status:** [~] Implementation committed; CI and hardware verification pending.  
+**Status:** [x] Software implementation, CI quality suite and ARM64 cross-build verified; hardware validation pending.  
 **Dependency:** F-002
 
 - [x] Add strict optional CHANNEL_ID=LABEL mapping with generic fallback labels.
@@ -52,7 +52,7 @@
 - [x] Ensure URI generation never accepts or prints credentials.
 - [x] Add unit/integration tests for URI paths, profiles, labels, invalid input and CLI output.
 - [x] Add Quick Start, configuration docs, ADR-0003 and DAR-004.
-- [ ] Pass CI formatting, Clippy, tests and ARM64 build.
+- [x] Pass CI formatting, Clippy, tests, optimized build and ARM64 cross-build (run 43603889113).
 - [ ] Verify RTSP port, URI convention, channel numbering and stream suffixes on hardware.
 - [ ] Verify authentication and transport behavior on the target NVR.
 - [ ] Benchmark a single substream on Jetson before adding live session management.
