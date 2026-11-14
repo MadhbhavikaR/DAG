@@ -1,5 +1,6 @@
 //! Core library for the DAG Nano NVR AI application.
 
+pub mod camera;
 pub mod cli;
 pub mod config;
 pub mod logging;

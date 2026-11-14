@@ -23,3 +23,4 @@ Do not present assumptions as measured facts. Record unknowns as explicit discov
 - [DAR-001: Rust platform and runtime analysis](01-rust-platform-and-runtime-analysis.md)
 - [DAR-002: Rust workspace and configuration analysis](02-rust-workspace-and-configuration-analysis.md)
 - [DAR-003: Hikvision ISAPI transport and event parsing](03-hikvision-isapi-transport-analysis.md)
+- [DAR-004: Camera channel inventory and RTSP URI analysis](04-camera-channel-and-rtsp-uri-analysis.md)

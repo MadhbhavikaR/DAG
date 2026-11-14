@@ -24,7 +24,7 @@ fn health_command_reports_application_status() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
     assert!(stdout.contains("\"status\":\"ok\""));
-    assert!(stdout.contains("\"version\":\"0.3.5\""));
+    assert!(stdout.contains("\"version\":\"0.4.0\""));
 }
 
 #[test]
@@ -72,6 +72,34 @@ fn version_command_matches_package_metadata() {
         String::from_utf8(output.stdout)
             .expect("stdout should be UTF-8")
             .trim(),
-        "dag-nvr-ai 0.3.5"
+        "dag-nvr-ai 0.4.0"
     );
+}
+
+#[test]
+fn list_streams_uses_configured_host_and_channel_labels() {
+    let config_path = temporary_path("dag-nvr-ai-stream-config");
+    let map_path = temporary_path("dag-nvr-ai-camera-map");
+    fs::write(
+        &config_path,
+        "NVR_HOST=192.168.100.103\nNVR_RTSP_PORT=554\nNVR_CHANNELS=2\n",
+    )
+    .expect("temporary config should be writable");
+    fs::write(&map_path, "1=front_gate\n").expect("temporary map should be writable");
+
+    let output = Command::new(binary())
+        .arg("list-streams")
+        .arg(format!("--config={}", config_path.display()))
+        .arg(format!("--camera-map={}", map_path.display()))
+        .output()
+        .expect("binary should execute");
+    let _ = fs::remove_file(&config_path);
+    let _ = fs::remove_file(&map_path);
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be UTF-8");
+    assert!(stdout.contains("channel=1 label=front_gate profile=main"));
+    assert!(stdout.contains("rtsp://192.168.100.103:554/Streaming/Channels/101"));
+    assert!(stdout.contains("channel=2 label=channel-02 profile=sub"));
+    assert!(stdout.contains("no network connection was attempted"));
 }

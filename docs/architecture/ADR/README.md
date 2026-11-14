@@ -21,3 +21,4 @@ An ADR records a decision and its consequences; it is not a general design tutor
 
 - [ADR-0001: Rust-first modular monolith](ADR-0001-rust-first-modular-monolith.md)
 - [ADR-0002: System curl adapter for Hikvision ISAPI](ADR-0002-system-curl-isapi-transport.md)
+- [ADR-0003: Camera channel inventory and RTSP URI planning](ADR-0003-camera-channel-inventory-and-rtsp-uri-planning.md)

@@ -1,5 +1,6 @@
-//! Command-line interface for configuration, health and NVR discovery.
+//! Command-line interface for configuration, NVR discovery and camera stream planning.
 
+use crate::camera::CameraRegistry;
 use crate::config::{Config, LogLevel};
 use crate::logging::{self, log};
 use crate::nvr::client::HikvisionIsapiClient;
@@ -79,6 +80,27 @@ where
                 })
                 .map_err(|error| error.to_string())
         }
+        "list-streams" => {
+            let (config_path, camera_map_path) = parse_stream_arguments(arguments)?;
+            let config = Config::load(config_path.as_deref()).map_err(|error| error.to_string())?;
+            let registry = CameraRegistry::load(camera_map_path.as_deref(), config.nvr_channels)
+                .map_err(|error| error.to_string())?;
+            let streams = registry
+                .streams(&config.nvr_host, config.nvr_rtsp_port)
+                .map_err(|error| error.to_string())?;
+
+            println!("Candidate RTSP endpoints only; no network connection was attempted.");
+            for stream in streams {
+                println!(
+                    "channel={} label={} profile={} uri={}",
+                    stream.channel_id,
+                    stream.camera_label,
+                    stream.profile.as_str(),
+                    stream.uri
+                );
+            }
+            Ok(())
+        }
         _ => Err(format!(
             "unknown command '{command}'. Run 'dag-nvr-ai help'."
         )),
@@ -111,6 +133,36 @@ where
     Ok(path)
 }
 
+fn parse_stream_arguments<I>(
+    arguments: I,
+) -> Result<(Option<PathBuf>, Option<PathBuf>), String>
+where
+    I: IntoIterator<Item = String>,
+{
+    let mut config_path = None;
+    let mut camera_map_path = None;
+
+    for argument in arguments {
+        if let Some(value) = argument.strip_prefix("--config=") {
+            if value.is_empty() || config_path.is_some() {
+                return Err("--config requires exactly one non-empty path".to_owned());
+            }
+            config_path = Some(PathBuf::from(value));
+        } else if let Some(value) = argument.strip_prefix("--camera-map=") {
+            if value.is_empty() || camera_map_path.is_some() {
+                return Err("--camera-map requires exactly one non-empty path".to_owned());
+            }
+            camera_map_path = Some(PathBuf::from(value));
+        } else if argument == "--config" || argument == "--camera-map" {
+            return Err(format!("{argument} requires a path using --option=PATH syntax"));
+        } else {
+            return Err(format!("unknown argument '{argument}'"));
+        }
+    }
+
+    Ok((config_path, camera_map_path))
+}
+
 fn print_help() {
     println!(
         "DAG Nano NVR AI {VERSION}\n\
@@ -120,8 +172,10 @@ fn print_help() {
          dag-nvr-ai health\n\
          dag-nvr-ai validate-config [--config=PATH]\n\
          dag-nvr-ai probe-nvr [--config=PATH]\n\
-         dag-nvr-ai listen-events [--config=PATH]\n\n\
+         dag-nvr-ai listen-events [--config=PATH]\n\
+         dag-nvr-ai list-streams [--config=PATH] [--camera-map=PATH]\n\n\
          NVR credentials are read only from DAG_NVR_USERNAME and DAG_NVR_PASSWORD.\n\
-         Configuration precedence: defaults < config file < DAG_* environment variables."
+         Configuration precedence: defaults < config file < DAG_* environment variables.\n\
+         list-streams prints candidate endpoints only; it does not connect to the NVR."
     );
 }
