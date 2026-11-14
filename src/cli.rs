@@ -133,9 +133,7 @@ where
     Ok(path)
 }
 
-fn parse_stream_arguments<I>(
-    arguments: I,
-) -> Result<(Option<PathBuf>, Option<PathBuf>), String>
+fn parse_stream_arguments<I>(arguments: I) -> Result<(Option<PathBuf>, Option<PathBuf>), String>
 where
     I: IntoIterator<Item = String>,
 {
@@ -154,7 +152,9 @@ where
             }
             camera_map_path = Some(PathBuf::from(value));
         } else if argument == "--config" || argument == "--camera-map" {
-            return Err(format!("{argument} requires a path using --option=PATH syntax"));
+            return Err(format!(
+                "{argument} requires a path using --option=PATH syntax"
+            ));
         } else {
             return Err(format!("unknown argument '{argument}'"));
         }

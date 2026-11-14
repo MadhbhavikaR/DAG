@@ -57,7 +57,9 @@ pub struct CameraError {
 
 impl CameraError {
     fn new(message: impl Into<String>) -> Self {
-        Self { message: message.into() }
+        Self {
+            message: message.into(),
+        }
     }
 }
 
@@ -74,7 +76,10 @@ impl CameraRegistry {
     pub fn load(path: Option<&Path>, channel_count: u8) -> Result<Self, CameraError> {
         let contents = match path {
             Some(path) => Some(fs::read_to_string(path).map_err(|error| {
-                CameraError::new(format!("cannot read camera map {}: {error}", path.display()))
+                CameraError::new(format!(
+                    "cannot read camera map {}: {error}",
+                    path.display()
+                ))
             })?),
             None => None,
         };
@@ -83,7 +88,9 @@ impl CameraRegistry {
 
     pub fn from_mapping(contents: Option<&str>, channel_count: u8) -> Result<Self, CameraError> {
         if !(1..=16).contains(&channel_count) {
-            return Err(CameraError::new("camera channel count must be between 1 and 16"));
+            return Err(CameraError::new(
+                "camera channel count must be between 1 and 16",
+            ));
         }
 
         let mut labels = BTreeMap::new();
@@ -100,7 +107,10 @@ impl CameraRegistry {
                     ))
                 })?;
                 let channel_id = raw_channel.trim().parse::<u8>().map_err(|_| {
-                    CameraError::new(format!("invalid channel ID on camera map line {}", index + 1))
+                    CameraError::new(format!(
+                        "invalid channel ID on camera map line {}",
+                        index + 1
+                    ))
                 })?;
                 if channel_id == 0 || channel_id > channel_count {
                     return Err(CameraError::new(format!(
@@ -168,15 +178,17 @@ pub fn build_rtsp_uri(
         return Err(CameraError::new("RTSP channel ID must be between 1 and 16"));
     }
     let stream_number = u16::from(channel_id) * 100 + u16::from(profile.channel_suffix());
-    Ok(format!("rtsp://{host}:{port}/Streaming/Channels/{stream_number}"))
+    Ok(format!(
+        "rtsp://{host}:{port}/Streaming/Channels/{stream_number}"
+    ))
 }
 
 fn validate_rtsp_authority(host: &str, port: u16) -> Result<(), CameraError> {
     if host.is_empty()
         || host.len() > 253
-        || host.chars().any(|character| {
-            character.is_whitespace() || "/@?#".contains(character)
-        })
+        || host
+            .chars()
+            .any(|character| character.is_whitespace() || "/@?#".contains(character))
     {
         return Err(CameraError::new(
             "RTSP host must be a hostname, IPv4 address or bracketed IPv6 address without URI components",
